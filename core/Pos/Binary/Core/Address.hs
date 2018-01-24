@@ -11,10 +11,10 @@ import           Control.Lens (_Left)
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Word (Word8)
 
-import           Pos.Binary.Class (Bi (..), decodeCrcProtected, decodeListLenCanonical,
-                                   decodeUnknownCborDataItem, deserialize, encodeCrcProtected,
-                                   encodeListLen, encodeUnknownCborDataItem, enforceSize,
-                                   serialize)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), decodeCrcProtected,
+                                   decodeListLenCanonical, decodeUnknownCborDataItem, deserialize,
+                                   encodeCrcProtected, encodeListLen, encodeUnknownCborDataItem,
+                                   enforceSize, serialize)
 import           Pos.Binary.Core.Common ()
 import           Pos.Binary.Core.Script ()
 import           Pos.Binary.Crypto ()
@@ -33,13 +33,14 @@ w8 :: Word8 -> Word8
 w8 = identity
 {-# INLINE w8 #-}
 
-instance Bi AddrType where
+instance BiEnc AddrType where
     encode =
         encode @Word8 . \case
             ATPubKey -> 0
             ATScript -> 1
             ATRedeem -> 2
             ATUnknown tag -> tag
+instance BiDec AddrType where
     decode =
         decode @Word8 <&> \case
             0 -> ATPubKey
@@ -67,7 +68,7 @@ versions would deserialize it as follows:
     UnknownASD 3 <some bytes>
 -}
 
-instance Bi AddrSpendingData where
+instance BiEnc AddrSpendingData where
     encode =
         \case
             PubKeyASD pk -> encode (w8 0, pk)
@@ -77,6 +78,7 @@ instance Bi AddrSpendingData where
                 -- `encodeListLen 2` is semantically equivalent to encode (x,y)
                 -- but we need to "unroll" it in order to apply CBOR's tag 24 to `payload`.
                 encodeListLen 2 <> encode tag <> encodeUnknownCborDataItem (LBS.fromStrict payload)
+instance BiDec AddrSpendingData where
     decode = do
         enforceSize "AddrSpendingData" 2
         decode @Word8 >>= \case
@@ -85,12 +87,13 @@ instance Bi AddrSpendingData where
             2 -> RedeemASD <$> decode
             tag -> UnknownASD tag <$> decodeUnknownCborDataItem
 
-instance Bi AddrStakeDistribution where
+instance BiEnc AddrStakeDistribution where
     encode =
         \case
             BootstrapEraDistr -> encodeListLen 0
             SingleKeyDistr id -> encode (w8 0, id)
             UnsafeMultiKeyDistr distr -> encode (w8 1, distr)
+instance BiDec AddrStakeDistribution where
     decode =
         decodeListLenCanonical >>= \case
             0 -> pure BootstrapEraDistr
@@ -116,7 +119,7 @@ For address there are two attributes:
 
 -}
 
-instance Bi (Attributes AddrAttributes) where
+instance BiEnc (Attributes AddrAttributes) where
     -- FIXME it was observed that for a 150kb block, this call to
     -- encodeAttributes allocated 3.685mb
     -- Try using serialize rather than serialize', to avoid the
@@ -141,6 +144,7 @@ instance Bi (Attributes AddrAttributes) where
                 Just _ ->
                     [(1, serialize . unsafeFromJust . aaPkDerivationPath)]
 
+instance BiDec (Attributes AddrAttributes) where
     decode = decodeAttributes initValue go
       where
         initValue =
@@ -155,7 +159,8 @@ instance Bi (Attributes AddrAttributes) where
                 _ -> pure Nothing
 
 -- We don't need a special encoding for 'Address'', GND is what we want.
-deriving instance Bi Address'
+deriving instance BiEnc Address'
+deriving instance BiDec Address'
 
 ----------------------------------------------------------------------------
 -- Address serialization
@@ -184,8 +189,9 @@ encodeAddr Address {..} =
 encodeAddrCRC32 :: Address -> Encoding
 encodeAddrCRC32 Address{..} = encodeCrcProtected (addrRoot, addrAttributes, addrType)
 
-instance Bi Address where
+instance BiEnc Address where
     encode Address{..} = encodeCrcProtected (addrRoot, addrAttributes, addrType)
+instance BiDec Address where
     decode = do
         (addrRoot, addrAttributes, addrType) <- decodeCrcProtected
         let res = Address {..}

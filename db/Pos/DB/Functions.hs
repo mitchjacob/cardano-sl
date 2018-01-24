@@ -23,7 +23,7 @@ import           Universum
 import qualified Data.ByteString as BS (drop, isPrefixOf)
 import           Formatting (bprint, builder, sformat, shown, stext, string, (%))
 
-import           Pos.Binary.Class (Bi, decodeFull', serialize')
+import           Pos.Binary.Class (BiDec, BiEnc, decodeFull', serialize')
 import           Pos.Core.Configuration (HasConfiguration, dbSerializeVersion)
 import           Pos.DB.Class (DBIteratorClass (..), DBTag, IterType, MonadDB (..),
                                MonadDBRead (..))
@@ -33,20 +33,20 @@ import           Pos.Util.Util (maybeThrow)
 -- | Read serialized value associated with given key from pure DB.
 dbGetBiNoVersion
     :: forall v m.
-       (Bi v, MonadDBRead m)
+       (BiDec v, MonadDBRead m)
     => DBTag -> ByteString -> m (Maybe v)
 dbGetBiNoVersion tag key = do
     bytes <- dbGet tag key
     traverse (dbDecode . (ToDecodeValue key)) bytes
 
 -- | Write serializable value to DB for given key.
-dbPutBiNoVersion :: (Bi v, MonadDB m) => DBTag -> ByteString -> v -> m ()
+dbPutBiNoVersion :: (BiEnc v, MonadDB m) => DBTag -> ByteString -> v -> m ()
 dbPutBiNoVersion tag k v = dbPut tag k (serialize' v)
 
 -- | Read serialized value (with version) associated with given key from pure DB.
 dbGetBi
     :: forall v m.
-       (HasConfiguration, Bi v, MonadDBRead m)
+       (HasConfiguration, BiDec v, MonadDBRead m)
     => DBTag -> ByteString -> m (Maybe v)
 dbGetBi tag key = do
     bytes <- dbGet tag key
@@ -60,11 +60,11 @@ dbGetBi tag key = do
         | otherwise = pure v
 
 -- | Write serializable value to DB for given key. Uses simple versioning.
-dbPutBi :: (HasConfiguration, Bi v, MonadDB m) => DBTag -> ByteString -> v -> m ()
+dbPutBi :: (HasConfiguration, BiEnc v, MonadDB m) => DBTag -> ByteString -> v -> m ()
 dbPutBi tag k v = dbPut tag k (dbSerializeValue v)
 
 -- | Version of 'serialize'' function that includes version when serializing a value.
-dbSerializeValue :: (HasConfiguration, Bi a) => a -> ByteString
+dbSerializeValue :: (HasConfiguration, BiEnc a) => a -> ByteString
 dbSerializeValue = serialize' . (dbSerializeVersion,)
 
 -- This type describes what we want to decode and contains auxiliary
@@ -74,7 +74,7 @@ data ToDecode
     | ToDecodeValue !ByteString -- key
                     !ByteString -- value
 
-dbDecode :: forall v m. (Bi v, MonadThrow m) => ToDecode -> m v
+dbDecode :: forall v m. (BiDec v, MonadThrow m) => ToDecode -> m v
 dbDecode =
     \case
         ToDecodeKey key ->
@@ -91,12 +91,12 @@ dbDecode =
         builder%
         ", err: "%stext
 
-dbDecodeMaybe :: (Bi v) => ByteString -> Maybe v
+dbDecodeMaybe :: (BiDec v) => ByteString -> Maybe v
 dbDecodeMaybe = rightToMaybe . decodeFull'
 
 -- Parse maybe
 dbDecodeMaybeWP
-    :: forall i . (DBIteratorClass i, Bi (IterKey i))
+    :: forall i . (DBIteratorClass i, BiDec (IterKey i))
     => ByteString -> Maybe (IterKey i)
 dbDecodeMaybeWP s
     | BS.isPrefixOf (iterKeyPrefix @i) s =
@@ -106,14 +106,19 @@ dbDecodeMaybeWP s
 -- | Encode iterator key using iterator prefix defined in
 -- 'DBIteratorClass'.
 encodeWithKeyPrefix
-    :: forall i . (DBIteratorClass i, Bi (IterKey i))
+    :: forall i . (DBIteratorClass i, BiEnc (IterKey i))
     => IterKey i -> ByteString
 encodeWithKeyPrefix = (iterKeyPrefix @i <>) . serialize'
 
 -- | Given a @(k,v)@ as pair of strings, try to decode both.
 processIterEntry ::
        forall i m.
-       (HasConfiguration, Bi (IterKey i), Bi (IterValue i), MonadThrow m, DBIteratorClass i)
+       ( HasConfiguration
+       , BiDec (IterKey i)
+       , BiDec (IterValue i)
+       , MonadThrow m
+       , DBIteratorClass i
+       )
     => (ByteString, ByteString)
     -> m (Maybe (IterType i))
 processIterEntry (key,val)

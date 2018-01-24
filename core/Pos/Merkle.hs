@@ -18,7 +18,6 @@ import           Universum
 
 import           Data.Bits (Bits (..))
 import           Data.ByteArray (ByteArrayAccess, convert)
-import qualified Data.ByteString.Lazy as LBS
 import           Data.ByteString.Builder (Builder, byteString)
 import qualified Data.ByteString.Builder.Extra as Builder
 import           Data.Coerce (coerce)
@@ -26,7 +25,7 @@ import qualified Data.Foldable as Foldable
 import qualified Data.Text.Buildable as Buildable
 import qualified Prelude
 
-import           Pos.Binary.Class (Bi, Raw, serializeBuilder)
+import           Pos.Binary.Class (BiEnc, Raw, serializeBuilder)
 import           Pos.Crypto (AbstractHash (..), Hash, hashRaw)
 
 -- | Data type for root of merkle tree.
@@ -72,10 +71,10 @@ instance Foldable MerkleNode where
         MerkleBranch{mLeft, mRight} ->
             foldMap f mLeft `mappend` foldMap f mRight
 
-toLazyByteString :: Builder -> LBS.ByteString
+toLazyByteString :: Builder -> LByteString
 toLazyByteString = Builder.toLazyByteStringWith (Builder.safeStrategy 1024 4096) mempty
 
-mkLeaf :: Bi a => a -> MerkleNode a
+mkLeaf :: BiEnc a => a -> MerkleNode a
 mkLeaf a =
     MerkleLeaf
     { mVal  = a
@@ -100,7 +99,7 @@ mkBranch a b =
     merkleRootToBuilder (MerkleRoot (AbstractHash d)) = byteString (convert d)
 
 -- | Smart constructor for 'MerkleTree'.
-mkMerkleTree :: Bi a => [a] -> MerkleTree a
+mkMerkleTree :: BiEnc a => [a] -> MerkleTree a
 mkMerkleTree [] = MerkleEmpty
 mkMerkleTree ls = MerkleTree (fromIntegral lsLen) (go lsLen ls)
   where

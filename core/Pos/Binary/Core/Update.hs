@@ -9,8 +9,8 @@ import           Universum
 import           Data.Time.Units (Millisecond)
 import           Serokell.Data.Memory.Units (Byte)
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Field (..), Raw, deriveSimpleBi,
-                                   deriveSimpleBiCxt, encodeListLen, enforceSize)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Field (..), Raw,
+                                   deriveSimpleBi, deriveSimpleBiCxt, encodeListLen, enforceSize)
 import           Pos.Binary.Core.Common ()
 import           Pos.Binary.Core.Fee ()
 import           Pos.Binary.Core.Script ()
@@ -22,8 +22,9 @@ import           Pos.Core.Update.Types (BlockVersion, BlockVersionData (..), Sof
                                         SoftwareVersion)
 import           Pos.Crypto (Hash)
 
-instance Bi U.ApplicationName where
+instance BiEnc U.ApplicationName where
     encode appName = encode (U.getApplicationName appName)
+instance BiDec U.ApplicationName where
     decode = U.ApplicationName <$> decode
 
 deriveSimpleBi ''U.BlockVersion [
@@ -82,8 +83,9 @@ deriveSimpleBi ''U.BlockVersionModifier [
         Field [| U.bvmUnlockStakeEpoch  :: Maybe EpochIndex    |]
     ]]
 
-instance Bi U.SystemTag where
+instance BiEnc U.SystemTag where
     encode = encode . U.getSystemTag
+instance BiDec U.SystemTag where
     decode = U.SystemTag <$> decode
 
 deriveSimpleBi ''U.UpdateData [
@@ -103,7 +105,7 @@ deriveSimpleBi ''U.UpdateProposalToSign [
         Field [| U.upsAttr :: U.UpAttributes                   |]
     ]]
 
-instance HasConfiguration => Bi U.UpdateProposal where
+instance HasConfiguration => BiEnc U.UpdateProposal where
     encode up = encodeListLen 7
             <> encode (U.upBlockVersion up)
             <> encode (U.upBlockVersionMod up)
@@ -112,6 +114,7 @@ instance HasConfiguration => Bi U.UpdateProposal where
             <> encode (U.upAttributes up)
             <> encode (U.upFrom up)
             <> encode (U.upSignature up)
+instance HasConfiguration => BiDec U.UpdateProposal where
     decode = do
         enforceSize "UpdateProposal" 7
         U.UnsafeUpdateProposal <$> decode
@@ -122,12 +125,13 @@ instance HasConfiguration => Bi U.UpdateProposal where
                                <*> decode
                                <*> decode
 
-instance HasConfiguration => Bi U.UpdateVote where
+instance HasConfiguration => BiEnc U.UpdateVote where
     encode uv =  encodeListLen 4
             <> encode (U.uvKey uv)
             <> encode (U.uvProposalId uv)
             <> encode (U.uvDecision uv)
             <> encode (U.uvSignature uv)
+instance HasConfiguration => BiDec U.UpdateVote where
     decode = do
         enforceSize "UpdateVote" 4
         uvKey        <- decode

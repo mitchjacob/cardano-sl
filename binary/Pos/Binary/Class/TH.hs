@@ -37,6 +37,7 @@ instance Bi User where
         val@FullName{} -> encodeListLen 3 <> encode (1 :: Word8)
                                           <> encode (firstName val)
                                           <> encode (sex val)
+instance Bi User where
     decode = do
         expectedLen <- decodeListLenCanonical
         tag <- decode @Word8
@@ -167,7 +168,9 @@ deriveSimpleBiInternal predsMB headTy constrs = do
                                 %shown%"', passed type '"%shown%"'")
                         field cName realType passedType
     ty <- conT headTy
-    makeBiInstanceTH preds ty <$> biEncodeExpr <*> biDecodeExpr
+    v1 <- makeBiInstanceTH preds ty True <$> biEncodeExpr
+    v2 <- makeBiInstanceTH preds ty False <$> biDecodeExpr
+    pure [v1, v2]
   where
     shortNameTy :: Text
     shortNameTy = toText $ nameBase headTy
@@ -277,13 +280,12 @@ deriveSimpleBiInternal predsMB headTy constrs = do
                                 recWildUsedVars
         doE $ lenCheck : (map pure bindExprs ++ [pure recordWildCardReturn])
 
-makeBiInstanceTH :: Cxt -> Type -> Exp -> Exp -> [Dec]
-makeBiInstanceTH preds ty encodeE decodeE = one $
+makeBiInstanceTH :: Cxt -> Type -> Bool -> Exp -> Dec
+makeBiInstanceTH preds ty isEncode encodeOrDecodeE =
   plainInstanceD
         preds -- context
-        (AppT (ConT ''Bi.Bi) ty)
-        [ ValD (VarP 'Bi.encode) (NormalB encodeE) []
-        , ValD (VarP 'Bi.decode) (NormalB decodeE) []
+        (AppT (ConT (if isEncode then ''Bi.BiEnc else ''Bi.BiDec)) ty)
+        [ ValD (VarP (if isEncode then 'Bi.encode else 'Bi.decode)) (NormalB encodeOrDecodeE) []
         ]
 
 data MatchConstructors

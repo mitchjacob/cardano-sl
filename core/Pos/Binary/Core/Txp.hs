@@ -8,9 +8,10 @@ import           Universum
 
 import qualified Data.ByteString.Lazy as LBS
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Field (..), decodeKnownCborDataItem,
-                                   decodeListLenCanonical, decodeUnknownCborDataItem,
-                                   deriveSimpleBi, encodeKnownCborDataItem, encodeListLen,
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Field (..),
+                                   decodeKnownCborDataItem, decodeListLenCanonical,
+                                   decodeUnknownCborDataItem, deriveSimpleBi,
+                                   encodeKnownCborDataItem, encodeListLen,
                                    encodeUnknownCborDataItem, enforceSize, matchSize)
 import           Pos.Binary.Core.Address ()
 import           Pos.Binary.Merkle ()
@@ -21,7 +22,7 @@ import qualified Pos.Core.Txp as T
 -- Core
 ----------------------------------------------------------------------------
 
-instance Bi T.TxIn where
+instance BiEnc T.TxIn where
     encode T.TxInUtxo{..} =
         encodeListLen 2 <>
         encode (0 :: Word8) <>
@@ -30,6 +31,7 @@ instance Bi T.TxIn where
         encodeListLen 2 <>
         encode tag <>
         encodeUnknownCborDataItem (LBS.fromStrict bs)
+instance BiDec T.TxIn where
     decode = do
         enforceSize "TxIn" 2
         tag <- decode @Word8
@@ -48,16 +50,17 @@ deriveSimpleBi ''T.TxOutAux [
         Field [| T.toaOut   :: T.TxOut |]
     ]]
 
-instance Bi T.Tx where
+instance BiEnc T.Tx where
     encode tx = encodeListLen 3
                 <> encode (T._txInputs tx)
                 <> encode (T._txOutputs tx)
                 <> encode (T._txAttributes tx)
+instance BiDec T.Tx where
     decode = do
         enforceSize "Tx" 3
         T.UnsafeTx <$> decode <*> decode <*> decode
 
-instance Bi T.TxInWitness where
+instance BiEnc T.TxInWitness where
     encode input = case input of
         T.PkWitness key sig         ->
             encodeListLen 2 <>
@@ -75,6 +78,7 @@ instance Bi T.TxInWitness where
             encodeListLen 2 <>
             encode tag <>
             encodeUnknownCborDataItem (LBS.fromStrict bs)
+instance BiDec T.TxInWitness where
     decode = do
         len <- decodeListLenCanonical
         tag <- decode @Word8
@@ -92,8 +96,9 @@ instance Bi T.TxInWitness where
                 matchSize len "TxInWitness.UnknownWitnessType" 2
                 T.UnknownWitnessType tag <$> decodeUnknownCborDataItem
 
-instance Bi T.TxSigData where
+instance BiEnc T.TxSigData where
     encode (T.TxSigData {..}) = encode txSigTxHash
+instance BiDec T.TxSigData where
     decode = T.TxSigData <$> decode
 
 deriveSimpleBi ''T.TxAux [
@@ -102,17 +107,19 @@ deriveSimpleBi ''T.TxAux [
         Field [| T.taWitness      :: T.TxWitness      |]
     ]]
 
-instance Bi T.TxProof where
+instance BiEnc T.TxProof where
     encode proof =  encodeListLen 3
                  <> encode (T.txpNumber proof)
                  <> encode (T.txpRoot proof)
                  <> encode (T.txpWitnessesHash proof)
+instance BiDec T.TxProof where
     decode = do
         enforceSize "TxProof" 3
         T.TxProof <$> decode <*>
                       decode <*>
                       decode
 
-instance Bi T.TxPayload where
+instance BiEnc T.TxPayload where
     encode T.UnsafeTxPayload {..} = encode $ zip (toList _txpTxs) _txpWitnesses
+instance BiDec T.TxPayload where
     decode = T.mkTxPayload <$> decode

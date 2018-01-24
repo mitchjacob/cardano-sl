@@ -38,12 +38,13 @@ recreateGenesisDelegation ::
     => HashMap StakeholderId ProxySKHeavy
     -> m GenesisDelegation
 recreateGenesisDelegation pskMap = do
-    forM_ (HM.toList pskMap) $ \(k, psk) ->
-        when (addressHash (pskIssuerPk psk) /= k) $
+    forM_ (HM.toList pskMap) $ \(k, psk) -> do
+        let issuerAddress = addressHash $ pskIssuerPk psk
+        when (issuerAddress /= k) $
             throwError $ sformat
                 ("wrong issuerPk set as key for delegation map: "%
                  "issuer id = "%build%", cert id = "%build)
-                k (addressHash (pskIssuerPk psk))
+                k issuerAddress
     when (any isSelfSignedPsk pskMap) $
         throwError "there is a self-signed (revocation) psk"
     let isIssuer psk =
@@ -57,7 +58,7 @@ recreateGenesisDelegation pskMap = do
 -- calling funciton.
 convertNonAvvmDataToBalances
     :: forall m .
-       ( MonadError Text m, Bi Address )
+       ( MonadError Text m, Bi Address)
     => HashMap Text Integer
     -> m GenesisNonAvvmBalances
 convertNonAvvmDataToBalances balances = GenesisNonAvvmBalances <$> balances'

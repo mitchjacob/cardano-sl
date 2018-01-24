@@ -65,8 +65,8 @@ import           Pos.Binary.Class (Bi, Raw)
 import           Pos.Core.Common (CoinPortion, ScriptVersion, TxFeePolicy, addressHash)
 import           Pos.Core.Slotting.Types (EpochIndex, FlatSlotId)
 import           Pos.Crypto (HasCryptoConfiguration, Hash, PublicKey, SafeSigner, SecretKey,
-                             SignTag (SignUSVote), Signature, hash, safeSign,
-                             safeToPublic, shortHashF, sign, toPublic)
+                             SignTag (SignUSVote), Signature, hash, safeSign, safeToPublic,
+                             shortHashF, sign, toPublic)
 import           Pos.Data.Attributes (Attributes, areAttributesKnown)
 import           Pos.Util.Orphans ()
 

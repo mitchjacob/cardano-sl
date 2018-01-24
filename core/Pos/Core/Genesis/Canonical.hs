@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 -- | Canonical encoding of 'GenesisData'.
 
 module Pos.Core.Genesis.Canonical
@@ -27,9 +29,12 @@ import           Text.JSON.Canonical (FromJSON (..), FromObjectKey (..), Int54, 
 
 import           Pos.Binary.Class (AsBinary (..))
 import           Pos.Binary.Core.Address ()
+import           Pos.Binary.Core.Delegation ()
+import           Pos.Binary.Core.Slotting ()
 import           Pos.Core.Common (Address, Coeff (..), Coin (..), CoinPortion (..), SharedSeed (..),
                                   StakeholderId, TxFeePolicy (..), TxSizeLinear (..), addressF,
                                   decodeTextAddress, getCoinPortion, unsafeGetCoin)
+import           Pos.Core.Delegation.Types (HeavyDlgIndex (..))
 import           Pos.Core.Genesis.Helpers (recreateGenesisDelegation)
 import           Pos.Core.Genesis.Types (GenesisAvvmBalances (..), GenesisData (..),
                                          GenesisDelegation (..), GenesisNonAvvmBalances (..),
@@ -39,11 +44,13 @@ import           Pos.Core.Slotting.Types (EpochIndex (..), Timestamp (..))
 import           Pos.Core.Ssc.Types (VssCertificate (..), VssCertificatesMap (..))
 import           Pos.Core.Ssc.Vss (validateVssCertificatesMap)
 import           Pos.Core.Update.Types (BlockVersionData (..), SoftforkRule (..))
-import           Pos.Crypto (ProxyCert, ProxySecretKey (..), PublicKey, RedeemPublicKey, Signature,
-                             decodeAbstractHash, fromAvvmPk, fullProxyCertHexF, fullPublicKeyF,
-                             fullSignatureHexF, hashHexF, parseFullProxyCert, parseFullPublicKey,
-                             parseFullSignature, redeemPkB64UrlF)
+import           Pos.Crypto (HasCryptoConfiguration, ProxyCert, ProxySecretKey (..), PublicKey,
+                             RedeemPublicKey, Signature, decodeAbstractHash, fromAvvmPk,
+                             fullProxyCertHexF, fullPublicKeyF, fullSignatureHexF, hashHexF,
+                             parseFullProxyCert, parseFullPublicKey, parseFullSignature,
+                             redeemPkB64UrlF)
 import           Pos.Crypto.Configuration (ProtocolMagic (..))
+import           Pos.Util.Verification (mkUnver, runVerify)
 
 ----------------------------------------------------------------------------
 -- Primitive standard/3rdparty types
@@ -158,15 +165,15 @@ instance Monad m => ToObjectKey m Address where
 instance Monad m => ToJSON m Address where
     toJSON = fmap JSString . toObjectKey
 
-instance Monad m => ToJSON m (ProxySecretKey EpochIndex) where
-    toJSON psk =
+instance Monad m => ToJSON m (ProxySecretKey HeavyDlgIndex) where
+    toJSON UnsafeProxySecretKey {..} =
         -- omega is encoded as a number, because in genesis we always
         -- set it to 0.
         mkObject
-            [ ("omega", pure (JSNum . fromIntegral $ pskOmega psk))
-            , ("issuerPk", toJSON $ pskIssuerPk psk)
-            , ("delegatePk", toJSON $ pskDelegatePk psk)
-            , ("cert", toJSON $ pskCert psk)
+            [ ("omega", pure (JSNum . fromIntegral $ getHeavyDlgIndex $ pskOmega))
+            , ("issuerPk", toJSON pskIssuerPk)
+            , ("delegatePk", toJSON pskDelegatePk)
+            , ("cert", toJSON pskCert)
             ]
 
 instance Monad m => ToJSON m SoftforkRule where
@@ -247,8 +254,6 @@ instance Monad m => ToJSON m GenesisData where
             , ("avvmDistr", toJSON gdAvvmDistr)
             , ("ftsSeed", toJSON gdFtsSeed)
             ]
-
-
 
 
 ----------------------------------------------------------------------------
@@ -392,13 +397,18 @@ instance ReportSchemaErrors m => FromObjectKey m Address where
 instance ReportSchemaErrors m => FromJSON m Address where
     fromJSON = tryParseString decodeTextAddress
 
-instance ReportSchemaErrors m => FromJSON m (ProxySecretKey EpochIndex) where
+instance (ReportSchemaErrors m, HasCryptoConfiguration) =>
+         FromJSON m (ProxySecretKey HeavyDlgIndex) where
     fromJSON obj = do
-        pskOmega <- fromIntegral @Int54 <$> fromJSField obj "omega"
+        pskOmega <-
+            HeavyDlgIndex . fromIntegral @Int54 <$> fromJSField obj "omega"
         pskIssuerPk <- fromJSField obj "issuerPk"
         pskDelegatePk <- fromJSField obj "delegatePk"
         pskCert <- fromJSField obj "cert"
-        pure UnsafeProxySecretKey{..}
+        let failExp :: ReportSchemaErrors m => String -> m a
+            failExp e = expected e Nothing
+        either (failExp . show) pure $
+            runVerify $ mkUnver $ UnsafeProxySecretKey {..}
 
 instance ReportSchemaErrors m => FromJSON m SoftforkRule where
     fromJSON obj = do
@@ -419,7 +429,8 @@ instance ReportSchemaErrors m => FromJSON m TxFeePolicy where
 instance ReportSchemaErrors m => FromJSON m GenesisWStakeholders where
     fromJSON = fmap GenesisWStakeholders . fromJSON
 
-instance ReportSchemaErrors m => FromJSON m GenesisDelegation where
+instance (ReportSchemaErrors m, HasCryptoConfiguration) =>
+         FromJSON m GenesisDelegation where
     fromJSON val = do
         psks <- fromJSON val
         wrapConstructor $ recreateGenesisDelegation psks
@@ -459,7 +470,7 @@ instance ReportSchemaErrors m => FromJSON m BlockVersionData where
         bvdUnlockStakeEpoch <- fromJSField obj "unlockStakeEpoch"
         return BlockVersionData {..}
 
-instance (ReportSchemaErrors m) => FromJSON m GenesisData where
+instance (ReportSchemaErrors m, HasCryptoConfiguration) => FromJSON m GenesisData where
     fromJSON obj = do
         gdBootStakeholders <- fromJSField obj "bootStakeholders"
         gdHeavyDelegation <- fromJSField obj "heavyDelegation"

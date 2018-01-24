@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
@@ -58,12 +59,13 @@ import           Data.Conduit (Source)
 import qualified Database.RocksDB as Rocks
 import           Serokell.Data.Memory.Units (Byte)
 
-import           Pos.Binary.Class (Bi, decodeFull')
+import           Pos.Binary.Class (BiDec, decodeFull')
 import           Pos.Binary.Core ()
 import           Pos.Core (Block, BlockVersionData (..), EpochIndex, HasConfiguration, HeaderHash,
                            isBootstrapEra)
 import           Pos.DB.Error (DBError (DBMalformed))
 import           Pos.Util.Util (eitherToThrow)
+import           Pos.Util.Verification (getUnverUnsafe)
 
 ----------------------------------------------------------------------------
 -- Pure
@@ -105,8 +107,8 @@ class (HasConfiguration, MonadBaseControl IO m, MonadThrow m) => MonadDBRead m w
     -- | Source producing iteration over given 'i'.
     dbIterSource ::
         ( DBIteratorClass i
-        , Bi (IterKey i)
-        , Bi (IterValue i)
+        , BiDec (IterKey i)
+        , BiDec (IterValue i)
         ) => DBTag -> Proxy i -> Source (ResourceT m) (IterType i)
 
     -- | Get block by header hash
@@ -129,14 +131,14 @@ instance {-# OVERLAPPABLE #-}
 type MonadBlockDBRead m = (MonadDBRead m)
 
 getDeserialized
-    :: (MonadBlockDBRead m, Bi v)
+    :: (MonadBlockDBRead m, BiDec v)
     => (x -> m (Maybe (Serialized tag))) -> x -> m (Maybe v)
 getDeserialized getter x = getter x >>= \case
     Nothing  -> pure Nothing
     Just ser -> eitherToThrow $ bimap DBMalformed Just $ decodeFull' $ unSerialized ser
 
 getBlock :: MonadBlockDBRead m => HeaderHash -> m (Maybe Block)
-getBlock = getDeserialized dbGetSerBlock
+getBlock hh = fmap getUnverUnsafe <$> getDeserialized dbGetSerBlock hh
 
 -- | Pure interface to the database. Combines read-only interface and
 -- ability to put raw bytes.

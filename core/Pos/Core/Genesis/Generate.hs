@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 -- | Generation of genesis data for testnet.
 
 module Pos.Core.Genesis.Generate
@@ -25,6 +27,7 @@ import           Serokell.Util.Verify (VerificationRes (..), formatAllErrors, ve
 
 import           Pos.Binary.Class (asBinary, serialize')
 import           Pos.Binary.Core.Address ()
+import           Pos.Binary.Core.Delegation ()
 import           Pos.Binary.Core.Slotting ()
 import           Pos.Core.Common (Address, Coin, IsBootstrapEraAddr (..), StakeholderId,
                                   addressHash, applyCoinPortionDown, coinToInteger,
@@ -32,7 +35,7 @@ import           Pos.Core.Common (Address, Coin, IsBootstrapEraAddr (..), Stakeh
                                   unsafeIntegerToCoin)
 import           Pos.Core.Configuration.BlockVersionData (HasGenesisBlockVersionData)
 import           Pos.Core.Configuration.Protocol (HasProtocolConstants, vssMaxTTL, vssMinTTL)
-import           Pos.Core.Delegation.Types (ProxySKHeavy)
+import           Pos.Core.Delegation.Types (HeavyDlgIndex (..), ProxySKHeavy)
 import           Pos.Core.Genesis.Helpers (mkGenesisDelegation)
 import           Pos.Core.Genesis.Types (FakeAvvmOptions (..), GenesisAvvmBalances (..),
                                          GenesisDelegation, GenesisInitializer (..),
@@ -133,7 +136,7 @@ generateGenesisData (GenesisInitializer{..}) realAvvmBalances = deterministic (s
     let genesisDlgList :: [ProxySKHeavy]
         genesisDlgList =
             (\(issuerSk, RichSecrets {..}) ->
-                 createPsk issuerSk (toPublic rsPrimaryKey) 0) <$>
+                 createPsk issuerSk (toPublic rsPrimaryKey) (HeavyDlgIndex 0)) <$>
             zip dlgIssuersSecrets richmenSecrets
         genesisDlg =
             leftToPanic "generateGenesisData: genesisDlg" $

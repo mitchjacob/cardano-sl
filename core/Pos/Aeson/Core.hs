@@ -25,6 +25,7 @@ import           Pos.Core.Common (Address, BlockCount (..), ChainDifficulty, Coi
                                   Script (..), SharedSeed (..), addressF, coinPortionToDouble,
                                   decodeTextAddress, mkCoin, unsafeCoinPortionFromDouble,
                                   unsafeGetCoin)
+import           Pos.Core.Delegation (HeavyDlgIndex (..))
 import           Pos.Core.Slotting.Types (EpochIndex (..), LocalSlotIndex, SlotCount (..), SlotId,
                                           Timestamp (..))
 import           Pos.Core.Ssc.Types (VssCertificate)
@@ -120,3 +121,6 @@ instance ToJSON Coin where
 
 deriving instance FromJSON EpochIndex
 deriving instance ToJSON EpochIndex
+
+instance FromJSON HeavyDlgIndex where
+    parseJSON v = HeavyDlgIndex <$> parseJSON v

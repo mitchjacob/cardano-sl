@@ -12,16 +12,16 @@ module Pos.Core.Ssc.Util
 
 import           Universum
 
-import           Control.Monad.Except (MonadError)
 import           Control.Lens (each, traverseOf)
+import           Control.Monad.Except (MonadError)
 import qualified Data.HashMap.Strict as HM
 
-import           Pos.Binary.Class (Bi (..), fromBinary)
+import           Pos.Binary.Class (BiEnc, fromBinary)
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Core.Ssc.Types (Commitment (..), CommitmentsMap, Opening, SscPayload (..),
                                      SscProof (..), VssCertificate, VssCertificatesMap (..))
 import           Pos.Core.Ssc.Vss (checkVssCertificatesMap)
-import           Pos.Crypto (EncShare, VssPublicKey, hash, HasCryptoConfiguration)
+import           Pos.Crypto (EncShare, HasCryptoConfiguration, VssPublicKey, hash)
 
 -- | Get commitment shares.
 getCommShares :: Commitment -> Maybe [(VssPublicKey, NonEmpty EncShare)]
@@ -33,10 +33,10 @@ getCommShares =
 -- | Create proof (for inclusion into block header) from 'SscPayload'.
 mkSscProof
     :: ( HasConfiguration
-       , Bi VssCertificatesMap
-       , Bi CommitmentsMap
-       , Bi Opening
-       , Bi VssCertificate
+       , BiEnc VssCertificatesMap
+       , BiEnc CommitmentsMap
+       , BiEnc Opening
+       , BiEnc VssCertificate
        ) => SscPayload -> SscProof
 mkSscProof payload =
     case payload of

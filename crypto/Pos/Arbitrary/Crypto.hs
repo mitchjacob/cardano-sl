@@ -1,4 +1,6 @@
--- | `Arbitrary` instances for using in tests and benchmarks
+{-# LANGUAGE DataKinds #-}
+
+-- | 'Arbitrary' instances for using in tests and benchmarks
 
 module Pos.Arbitrary.Crypto
        ( SharedSecrets (..)

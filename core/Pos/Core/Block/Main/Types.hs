@@ -1,3 +1,6 @@
+{-# LANGUAGE DataKinds      #-}
+{-# LANGUAGE KindSignatures #-}
+
 -- | Types defining the main blockchain.
 
 module Pos.Core.Block.Main.Types

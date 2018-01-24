@@ -9,10 +9,10 @@ import           Universum
 import qualified Data.HashSet as HS
 import           Serokell.Util (allDistinct)
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Decoder, Encoding, Field (..),
-                                   deriveSimpleBi, deriveSimpleBiCxt, encodeListLen, enforceSize)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Decoder, Encoding, Field (..),
+                                   deriveSimpleBi, encodeListLen, enforceSize)
+import           Pos.Binary.Core.Slotting ()
 import           Pos.Binary.Crypto ()
-import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Core.Ssc.Types (Commitment (..), CommitmentsMap (..), Opening (..),
                                      OpeningsMap, SharesMap, SignedCommitment, SscPayload (..),
                                      SscProof (..), VssCertificatesHash, mkCommitmentsMap)
@@ -21,9 +21,10 @@ import           Pos.Core.Ssc.Vss (VssCertificate (..), VssCertificatesMap (..),
 import           Pos.Crypto (Hash, PublicKey)
 import           Pos.Util.Util (cborError)
 
-instance Bi Commitment where
+instance BiEnc Commitment where
     encode Commitment{..} = encodeListLen 2 <> encode commShares
                                             <> encode commProof
+instance BiDec Commitment where
     decode = do
         enforceSize "Commitment" 2
         commShares <- decode
@@ -31,15 +32,17 @@ instance Bi Commitment where
         commProof <- decode
         return $ Commitment commProof commShares
 
-instance Bi CommitmentsMap where
+instance BiEnc CommitmentsMap where
     encode = encodeCommitments
+instance BiDec CommitmentsMap where
     decode = decodeCommitments
 
-instance HasConfiguration => Bi VssCertificate where
+instance BiEnc VssCertificate where
     encode vssCert = encodeListLen 4 <> encode (vcVssKey vssCert)
                                      <> encode (vcExpiryEpoch vssCert)
                                      <> encode (vcSignature vssCert)
                                      <> encode (vcSigningKey vssCert)
+instance BiDec VssCertificate where
     decode = do
         enforceSize "VssCertificate" 4
         key <- decode
@@ -48,12 +51,14 @@ instance HasConfiguration => Bi VssCertificate where
         sky <- decode
         pure $ UnsafeVssCertificate key epo sig sky
 
-instance HasConfiguration => Bi VssCertificatesMap where
+instance BiEnc VssCertificatesMap where
     encode = encodeVssCertificates
+instance BiDec VssCertificatesMap where
     decode = decodeVssCertificates
 
-instance Bi Opening where
+instance BiEnc Opening where
     encode = encode . getOpening
+instance BiDec Opening where
     decode = Opening <$> decode
 
 ----------------------------------------------------------------------------
@@ -74,10 +79,10 @@ Instead, we serialize those maps as sets, and we make sure to check that
 there are no values with duplicate stakeholder ids.
 -}
 
-encodeVssCertificates :: HasConfiguration => VssCertificatesMap -> Encoding
+encodeVssCertificates :: VssCertificatesMap -> Encoding
 encodeVssCertificates = encode . HS.fromList . toList
 
-decodeVssCertificates :: HasConfiguration => Decoder s VssCertificatesMap
+decodeVssCertificates :: Decoder s VssCertificatesMap
 decodeVssCertificates = do
     certs <- toList <$> decode @(HashSet VssCertificate)
     pure $ mkVssCertificatesMap certs
@@ -96,7 +101,7 @@ decodeCommitments = do
 -- TH-generated instances go to the end of the file
 ----------------------------------------------------------------------------
 
-deriveSimpleBiCxt [t|HasConfiguration|] ''SscPayload [
+deriveSimpleBi ''SscPayload [
     Cons 'CommitmentsPayload [
         Field [| spComms    :: CommitmentsMap     |],
         Field [| spVss      :: VssCertificatesMap |] ],

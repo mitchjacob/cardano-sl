@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 -- | Aeson instances for GenesisSpec and related datatypes.
 
 module Pos.Aeson.Genesis

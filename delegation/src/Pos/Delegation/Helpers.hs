@@ -17,18 +17,8 @@ import           Data.List (partition)
 
 import           Pos.Core (EpochIndex)
 import           Pos.Core.Block.Main (MainBlock, mainBlockDlgPayload)
+import           Pos.Core.Delegation.Types (DlgMemPool, DlgPayload (getDlgPayload))
 import           Pos.Crypto (ProxySecretKey (..), isSelfSignedPsk)
-import           Pos.Delegation.Types (DlgMemPool, DlgPayload (getDlgPayload))
-
--- | Verify delegation payload without using GState. This function can
--- be used for block verification in isolation, also it can be used
--- for mempool verification.
-dlgVerifyPayload :: MonadError Text m => EpochIndex -> DlgPayload -> m ()
-dlgVerifyPayload epoch (getDlgPayload -> proxySKs) =
-    unless (null notMatchingEpochs) $
-    throwError "Block contains psk(s) that have non-matching epoch index"
-  where
-    notMatchingEpochs = filter ((/= epoch) . pskOmega) proxySKs
 
 -- | Checks if given PSK revokes delegation (issuer == delegate).
 isRevokePsk :: ProxySecretKey w -> Bool

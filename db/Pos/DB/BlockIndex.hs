@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 -- | Operations with block index db.
 
 module Pos.DB.BlockIndex
@@ -16,12 +18,13 @@ import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.DB.Class (DBTag (BlockIndexDB), MonadBlockDBRead)
 import           Pos.DB.Functions (dbGetBi)
 import           Pos.DB.GState.Common (getTipSomething)
+import           Pos.Util.Verification (getUnverUnsafe)
 
 -- | Returns header of block that was requested from Block DB.
 getHeader
     :: (HasConfiguration, MonadBlockDBRead m)
     => HeaderHash -> m (Maybe BlockHeader)
-getHeader = dbGetBi BlockIndexDB . blockIndexKey
+getHeader hh = fmap getUnverUnsafe <$> dbGetBi BlockIndexDB (blockIndexKey hh)
 
 -- | Get 'BlockHeader' corresponding to tip.
 getTipHeader :: MonadBlockDBRead m => m BlockHeader

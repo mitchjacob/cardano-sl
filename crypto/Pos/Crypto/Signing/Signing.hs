@@ -19,10 +19,8 @@ module Pos.Crypto.Signing.Signing
        , checkSigRaw                   -- reexport
 
        -- * Proxy signature scheme
-       , verifyProxyCert               -- reexport
        , fullProxyCertHexF
        , parseFullProxyCert
-       , validateProxySecretKey        -- reexport
        , proxySign
        , proxyVerify
 
@@ -43,8 +41,7 @@ import           Pos.Binary.Class (Bi, Raw)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Binary.Crypto ()
 import           Pos.Crypto.Configuration (HasCryptoConfiguration)
-import           Pos.Crypto.Signing.Check (checkSig, checkSigRaw, validateProxySecretKey,
-                                           verifyProxyCert)
+import           Pos.Crypto.Signing.Check (checkSig, checkSigRaw)
 import           Pos.Crypto.Signing.Tag (signTag)
 import           Pos.Crypto.Signing.Types.Signing
 import           Pos.Crypto.Signing.Types.Tag (SignTag)
@@ -146,7 +143,7 @@ proxySign t sk@(SecretKey delegateSk) psk m
                          "(psk delegatePk: "%build%", real delegate pk: "%build%")")
                         (pskDelegatePk psk) (toPublic sk)
     | otherwise =
-        ProxySignature
+        UnsafeProxySignature
         { psigPsk = psk
         , psigSig = sigma
         }
@@ -165,12 +162,13 @@ proxySign t sk@(SecretKey delegateSk) psk m
 proxyVerify
     :: (HasCryptoConfiguration, Bi w, Bi a)
     => SignTag -> ProxySignature w a -> (w -> Bool) -> a -> Bool
-proxyVerify t ProxySignature{..} omegaPred m =
-    predCorrect && sigValid
+proxyVerify t psig omegaPred m =
+    and [predCorrect, sigValid]
   where
-    PublicKey issuerPk = pskIssuerPk psigPsk
-    PublicKey pdDelegatePkRaw = pskDelegatePk psigPsk
-    predCorrect = omegaPred (pskOmega psigPsk)
+    psk = psigPsk psig
+    PublicKey issuerPk = pskIssuerPk psk
+    PublicKey pdDelegatePkRaw = pskDelegatePk psk
+    predCorrect = omegaPred (pskOmega psk)
     sigValid =
         CC.verify
             pdDelegatePkRaw
@@ -180,4 +178,4 @@ proxyVerify t ProxySignature{..} omegaPred m =
                  , signTag t
                  , Bi.serialize' m
                  ])
-            psigSig
+            (psigSig psig)

@@ -26,12 +26,12 @@ import           Pos.Core.Block.Union.Types (Block, BlockHeader, BlockSignature 
 import           Pos.Core.Class (IsMainHeader (..))
 import           Pos.Core.Common (ChainDifficulty)
 import           Pos.Core.Configuration (HasConfiguration)
-import           Pos.Core.Delegation (DlgPayload)
+import           Pos.Core.Delegation (DlgPayload, DlgProof, mkDlgProof)
 import           Pos.Core.Slotting.Types (SlotId (..))
 import           Pos.Core.Ssc (SscPayload, SscProof, mkSscProof)
 import           Pos.Core.Txp (TxPayload, TxProof, mkTxProof)
 import           Pos.Core.Update (UpdatePayload, UpdateProof, mkUpdateProof)
-import           Pos.Crypto (Hash, PublicKey, hash)
+import           Pos.Crypto (PublicKey)
 
 instance ( HasConfiguration
          , Bi BlockHeader
@@ -43,7 +43,7 @@ instance ( HasConfiguration
     data BodyProof MainBlockchain = MainProof
         { mpTxProof       :: !TxProof
         , mpMpcProof      :: !SscProof
-        , mpProxySKsProof :: !(Hash DlgPayload)
+        , mpProxySKsProof :: !DlgProof
         , mpUpdateProof   :: !UpdateProof
         } deriving (Eq, Show, Generic)
 
@@ -82,7 +82,7 @@ instance ( HasConfiguration
         MainProof
         { mpTxProof = mkTxProof _mbTxPayload
         , mpMpcProof = mkSscProof _mbSscPayload
-        , mpProxySKsProof = hash _mbDlgPayload
+        , mpProxySKsProof = mkDlgProof _mbDlgPayload
         , mpUpdateProof = mkUpdateProof _mbUpdatePayload
         }
 

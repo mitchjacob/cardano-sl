@@ -1,5 +1,6 @@
-{-# LANGUAGE CPP          #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP            #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ViewPatterns   #-}
 
 -- | Serializable instances for Pos.Crypto.*
 
@@ -7,10 +8,10 @@ module Pos.Binary.Crypto () where
 
 import           Universum
 
-import           Control.Lens (_Left)
 import qualified Cardano.Crypto.Wallet as CC
-import qualified Crypto.Math.Edwards25519 as Ed25519
+import           Control.Lens (_Left)
 import           Crypto.Hash (digestFromByteString)
+import qualified Crypto.Math.Edwards25519 as Ed25519
 import qualified Crypto.PVSS as Pvss
 import qualified Crypto.SCRAPE as Scrape
 import qualified Crypto.Sign.Ed25519 as EdStandard
@@ -18,10 +19,10 @@ import qualified Data.ByteArray as ByteArray
 import qualified Data.ByteString as BS
 import           Formatting (int, sformat, (%))
 
-import           Pos.Binary.Class (AsBinary (..), Bi (..), Cons (..), Field (..), decodeBinary,
-                                   deriveSimpleBi, encodeBinary, encodeListLen, enforceSize)
+import           Pos.Binary.Class (AsBinary (..), Bi, BiDec (..), BiEnc (..), Cons (..), Field (..),
+                                   decodeBinary, deriveSimpleBi, encodeBinary, encodeListLen,
+                                   enforceSize)
 import           Pos.Crypto.AsBinary (decShareBytes, encShareBytes, secretBytes, vssPublicKeyBytes)
-import           Pos.Crypto.Configuration (HasCryptoConfiguration)
 import           Pos.Crypto.Hashing (AbstractHash (..), HashAlgorithm, WithHash (..), withHash)
 import           Pos.Crypto.HD (HDAddressPayload (..))
 import           Pos.Crypto.Scrypt (EncryptedPass (..))
@@ -33,18 +34,21 @@ import           Pos.Crypto.Signing.Types.Redeem (RedeemPublicKey (..), RedeemSe
                                                   RedeemSignature (..))
 import           Pos.Crypto.Signing.Types.Safe (EncryptedSecretKey (..), PassPhrase,
                                                 passphraseLength)
-import           Pos.Util.Util (toCborError, cborError)
+import           Pos.Util.Util (cborError, toCborError)
+import           Pos.Util.Verification (Unver, mkUnver)
 
-instance Bi a => Bi (WithHash a) where
+instance Bi a => BiEnc (WithHash a) where
     encode = encode . whData
+instance Bi a => BiDec (WithHash a) where
     decode = withHash <$> decode
 
 ----------------------------------------------------------------------------
 -- Hashing
 ----------------------------------------------------------------------------
 
-instance (Typeable algo, Typeable a, HashAlgorithm algo) => Bi (AbstractHash algo a) where
+instance (Typeable algo, Typeable a, HashAlgorithm algo) => BiEnc (AbstractHash algo a) where
     encode (AbstractHash digest) = encode (ByteArray.convert digest :: BS.ByteString)
+instance (Typeable algo, Typeable a, HashAlgorithm algo) => BiDec (AbstractHash algo a) where
     -- FIXME bad decode: it reads an arbitrary-length byte string.
     -- Better instance: know the hash algorithm up front, read exactly that
     -- many bytes, fail otherwise. Then convert to a digest.
@@ -58,50 +62,64 @@ instance (Typeable algo, Typeable a, HashAlgorithm algo) => Bi (AbstractHash alg
 -- SecretSharing
 ----------------------------------------------------------------------------
 
-instance Bi Scrape.PublicKey where
+instance BiEnc Scrape.PublicKey where
     encode = encodeBinary
+instance BiDec Scrape.PublicKey where
     decode = decodeBinary
 
-deriving instance Bi C.VssPublicKey
+deriving instance BiEnc C.VssPublicKey
+deriving instance BiDec C.VssPublicKey
 
-instance Bi Scrape.KeyPair where
+instance BiEnc Scrape.KeyPair where
     encode = encodeBinary
+instance BiDec Scrape.KeyPair where
     decode = decodeBinary
 
-deriving instance Bi C.VssKeyPair
+deriving instance BiEnc C.VssKeyPair
+deriving instance BiDec C.VssKeyPair
 
-instance Bi Scrape.Secret where
+instance BiEnc Scrape.Secret where
     encode = encodeBinary
+instance BiDec Scrape.Secret where
     decode = decodeBinary
 
-deriving instance Bi C.Secret
+deriving instance BiEnc C.Secret
+deriving instance BiDec C.Secret
 
-instance Bi Scrape.DecryptedShare where
+instance BiEnc Scrape.DecryptedShare where
     encode = encodeBinary
+instance BiDec Scrape.DecryptedShare where
     decode = decodeBinary
 
-deriving instance Bi C.DecShare
+deriving instance BiEnc C.DecShare
+deriving instance BiDec C.DecShare
 
-instance Bi Scrape.EncryptedSi where
+instance BiEnc Scrape.EncryptedSi where
     encode = encodeBinary
+instance BiDec Scrape.EncryptedSi where
     decode = decodeBinary
 
-deriving instance Bi C.EncShare
+deriving instance BiEnc C.EncShare
+deriving instance BiDec C.EncShare
 
-instance Bi Scrape.ExtraGen where
+instance BiEnc Scrape.ExtraGen where
     encode = encodeBinary
+instance BiDec Scrape.ExtraGen where
     decode = decodeBinary
 
-instance Bi Scrape.Commitment where
+instance BiEnc Scrape.Commitment where
     encode = encodeBinary
+instance BiDec Scrape.Commitment where
     decode = decodeBinary
 
-instance Bi Scrape.Proof where
+instance BiEnc Scrape.Proof where
     encode = encodeBinary
+instance BiDec Scrape.Proof where
     decode = decodeBinary
 
-instance Bi Scrape.ParallelProofs where
+instance BiEnc Scrape.ParallelProofs where
     encode = encodeBinary
+instance BiDec Scrape.ParallelProofs where
     decode = decodeBinary
 
 deriveSimpleBi ''C.SecretProof [
@@ -131,8 +149,9 @@ deriveSimpleBi ''C.SecretProof [
 -- careful.
 --
 #define BiMacro(B, BYTES) \
-  instance Bi (AsBinary B) where {\
-    encode (AsBinary bs) = encode bs ;\
+  instance BiEnc (AsBinary B) where { \
+    encode (AsBinary bs) = encode bs }; \
+  instance BiDec (AsBinary B) where { \
     decode = do { bs <- decode \
                 ; when (BYTES /= length bs) (cborError "AsBinary B: length mismatch!") \
                 ; return (AsBinary bs) } }; \
@@ -146,85 +165,103 @@ BiMacro(C.EncShare, encShareBytes)
 -- Signing
 ----------------------------------------------------------------------------
 
-instance Bi Ed25519.PointCompressed where
+instance BiEnc Ed25519.PointCompressed where
     encode (Ed25519.unPointCompressed -> k) = encode k
+instance BiDec Ed25519.PointCompressed where
     decode = Ed25519.pointCompressed <$> decode
 
-instance Bi Ed25519.Scalar where
+instance BiEnc Ed25519.Scalar where
     encode (Ed25519.unScalar -> k) = encode k
+instance BiDec Ed25519.Scalar where
     decode = Ed25519.scalar <$> decode
 
-instance Bi Ed25519.Signature where
+instance BiEnc Ed25519.Signature where
     encode (Ed25519.Signature s) = encode s
+instance BiDec Ed25519.Signature where
     decode = Ed25519.Signature <$> decode
 
-instance Bi CC.ChainCode where
+instance BiEnc CC.ChainCode where
     encode (CC.ChainCode c) = encode c
+instance BiDec CC.ChainCode where
     decode = CC.ChainCode <$> decode
 
-instance Bi CC.XPub where
+instance BiEnc CC.XPub where
     encode (CC.unXPub -> kc) = encode kc
+instance BiDec CC.XPub where
     decode = toCborError . over _Left fromString . CC.xpub =<< decode
 
-instance Bi CC.XPrv where
+instance BiEnc CC.XPrv where
     encode (CC.unXPrv -> kc) = encode kc
+instance BiDec CC.XPrv where
     decode = toCborError . over _Left fromString . CC.xprv =<< decode @ByteString
 
-instance Bi CC.XSignature where
+instance BiEnc CC.XSignature where
     encode (CC.unXSignature -> bs) = encode bs
+instance BiDec CC.XSignature where
     decode = toCborError . over _Left fromString . CC.xsignature =<< decode
 
-deriving instance Typeable a => Bi (Signature a)
-deriving instance Bi PublicKey
-deriving instance Bi SecretKey
+deriving instance Typeable a => BiEnc (Signature a)
+deriving instance Typeable a => BiDec (Signature a)
+deriving instance BiEnc PublicKey
+deriving instance BiDec PublicKey
+deriving instance BiEnc SecretKey
+deriving instance BiDec SecretKey
 
-instance Bi EncryptedSecretKey where
+instance BiEnc EncryptedSecretKey where
     encode (EncryptedSecretKey sk pph) = encodeListLen 2
                                       <> encode sk
                                       <> encode pph
+instance BiDec EncryptedSecretKey where
     decode = EncryptedSecretKey
          <$  enforceSize "EncryptedSecretKey" 2
          <*> decode
          <*> decode
 
-instance Bi a => Bi (Signed a) where
+instance BiEnc a => BiEnc (Signed a) where
     encode (Signed v s) = encodeListLen 2
                        <> encode v
                        <> encode s
+instance BiDec a => BiDec (Signed a) where
     decode = Signed
          <$  enforceSize "Signed" 2
          <*> decode
          <*> decode
 
-deriving instance Typeable w => Bi (ProxyCert w)
+deriving instance Typeable w => BiEnc (ProxyCert w)
+deriving instance Typeable w => BiDec (ProxyCert w)
 
-instance (Bi w, HasCryptoConfiguration) => Bi (ProxySecretKey w) where
-    encode UnsafeProxySecretKey{..} =
-        encodeListLen 4
-        <> encode pskOmega
-        <> encode pskIssuerPk
-        <> encode pskDelegatePk
-        <> encode pskCert
+instance BiEnc w => BiEnc (ProxySecretKey w) where
+    encode UnsafeProxySecretKey {..} =
+        encodeListLen 4 <>
+        encode pskOmega <>
+        encode pskIssuerPk <>
+        encode pskDelegatePk <>
+        encode pskCert
+instance BiDec w => BiDec (Unver (ProxySecretKey w)) where
+    decode =
+        fmap mkUnver $
+        UnsafeProxySecretKey <$
+        enforceSize "ProxySecretKey" 4 <*>
+        decode <*>
+        decode <*>
+        decode <*>
+        decode
+
+instance (Typeable a, BiEnc w) => BiEnc (ProxySignature w a) where
+    encode UnsafeProxySignature {..} =
+        encodeListLen 2 <>
+        encode psigPsk <>
+        encode psigSig
+instance (Typeable a, BiDec w) => BiDec (Unver (ProxySignature w a)) where
     decode = do
-        enforceSize "ProxySecretKey" 4
-        pskOmega      <- decode
-        pskIssuerPk   <- decode
-        pskDelegatePk <- decode
-        pskCert       <- decode
-        pure UnsafeProxySecretKey {..}
+        enforceSize "ProxySignature" 2
+        psigPsk <- decode
+        psigSig <- decode
+        pure $ UnsafeProxySignature <$> psigPsk <*> pure psigSig
 
-instance (Typeable a, Bi w, HasCryptoConfiguration) =>
-         Bi (ProxySignature w a) where
-    encode ProxySignature{..} = encodeListLen 2
-                             <> encode psigPsk
-                             <> encode psigSig
-    decode = ProxySignature
-          <$  enforceSize "ProxySignature" 2
-          <*> decode
-          <*> decode
-
-instance Bi PassPhrase where
+instance BiEnc PassPhrase where
     encode pp = encode (ByteArray.convert pp :: ByteString)
+instance BiDec PassPhrase where
     decode = do
         bs <- decode @ByteString
         let bl = BS.length bs
@@ -236,34 +273,44 @@ instance Bi PassPhrase where
                  ("put@PassPhrase: expected length 0 or "%int%", not "%int)
                  passphraseLength bl
 
-instance Bi EncryptedPass where
+instance BiEnc EncryptedPass where
     encode (EncryptedPass ep) = encode ep
+instance BiDec EncryptedPass where
     decode = EncryptedPass <$> decode
 
 -------------------------------------------------------------------------------
 -- Hierarchical derivation
 -------------------------------------------------------------------------------
 
-instance Bi HDAddressPayload where
+instance BiEnc HDAddressPayload where
     encode (HDAddressPayload payload) = encode payload
+instance BiDec HDAddressPayload where
     decode = HDAddressPayload <$> decode
 
 -------------------------------------------------------------------------------
 -- Standard Ed25519 instances for ADA redeem keys
 -------------------------------------------------------------------------------
 
-instance Bi EdStandard.PublicKey where
+instance BiEnc EdStandard.PublicKey where
     encode (EdStandard.PublicKey k) = encode k
+instance BiDec EdStandard.PublicKey where
     decode = EdStandard.PublicKey <$> decode
 
-instance Bi EdStandard.SecretKey where
+instance BiEnc EdStandard.SecretKey where
     encode (EdStandard.SecretKey k) = encode k
+instance BiDec EdStandard.SecretKey where
     decode = EdStandard.SecretKey <$> decode
 
-instance Bi EdStandard.Signature where
+instance BiEnc EdStandard.Signature where
     encode (EdStandard.Signature s) = encode s
+instance BiDec EdStandard.Signature where
     decode = EdStandard.Signature <$> decode
 
-deriving instance Bi RedeemPublicKey
-deriving instance Bi RedeemSecretKey
-deriving instance Typeable a => Bi (RedeemSignature a)
+deriving instance BiEnc RedeemPublicKey
+deriving instance BiDec RedeemPublicKey
+
+deriving instance BiEnc RedeemSecretKey
+deriving instance BiDec RedeemSecretKey
+
+deriving instance Typeable a => BiEnc (RedeemSignature a)
+deriving instance Typeable a => BiDec (RedeemSignature a)

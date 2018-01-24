@@ -71,8 +71,7 @@ genHeaderPrevBlock :: Lens' GenesisBlockHeader HeaderHash
 genHeaderPrevBlock = gbhPrevBlock
 
 -- | Lens from 'GenesisBlockHeader' to 'GenesisProof'.
-genHeaderProof ::
-       Lens' GenesisBlockHeader (BodyProof GenesisBlockchain)
+genHeaderProof :: Lens' GenesisBlockHeader (BodyProof GenesisBlockchain)
 genHeaderProof = gbhBodyProof
 
 -- | Lens from 'GenesisBlockHeader' to 'EpochIndex'.

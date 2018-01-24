@@ -29,19 +29,19 @@ import           Data.Semigroup (Semigroup)
 import qualified GHC.Exts as IL
 import           Test.QuickCheck (Arbitrary)
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiDec, BiEnc)
 
 newtype NewestFirst f a = NewestFirst {getNewestFirst :: f a}
   deriving (Eq, Ord, Show,
             Functor, Foldable, Traversable,
             ToList, Container,
-            Binary, Bi,
+            Binary, BiEnc, BiDec,
             Arbitrary)
 newtype OldestFirst f a = OldestFirst {getOldestFirst :: f a}
   deriving (Eq, Ord, Show,
             Functor, Foldable, Traversable,
             ToList, Container,
-            Binary, Bi,
+            Binary, BiEnc, BiDec,
             Arbitrary)
 
 makePrisms  ''NewestFirst

@@ -2,7 +2,7 @@ module Pos.Binary.Core.Common () where
 
 import           Universum
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Field (..), deriveSimpleBi)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Field (..), deriveSimpleBi)
 import           Pos.Core.Common.Types (Coin (..), unsafeGetCoin)
 import qualified Pos.Core.Common.Types as T
 import qualified Pos.Data.Attributes as A
@@ -11,16 +11,19 @@ import           Pos.Util.Orphans ()
 -- kind of boilerplate, but anyway that's what it was made for --
 -- verbosity and clarity
 
-instance Bi (A.Attributes ()) where
+instance BiEnc (A.Attributes ()) where
     encode = A.encodeAttributes []
+instance BiDec (A.Attributes ()) where
     decode = A.decodeAttributes () $ \_ _ _ -> pure Nothing
 
-instance Bi T.CoinPortion where
+instance BiEnc T.CoinPortion where
     encode = encode . T.getCoinPortion
+instance BiDec T.CoinPortion where
     decode = T.CoinPortion <$> decode
 
-instance Bi T.BlockCount where
+instance BiEnc T.BlockCount where
     encode = encode . T.getBlockCount
+instance BiDec T.BlockCount where
     decode = T.BlockCount <$> decode
 
 deriveSimpleBi ''T.SharedSeed [
@@ -35,9 +38,10 @@ deriveSimpleBi ''T.ChainDifficulty [
 
 -- | This instance required only for Arbitrary instance of HeaderHash
 -- due to @instance Bi a => Hash a@.
-instance Bi T.BlockHeaderStub where
+instance BiEnc T.BlockHeaderStub where
     encode = error "somebody tried to binary encode BlockHeaderStub"
-    decode = error "somebody tried to binary decode BlockHeaderStub"
+instance BiDec T.BlockHeaderStub where
+    decode = error  "somebody tried to binary decode BlockHeaderStub"
 
 ----------------------------------------------------------------------------
 -- Coin
@@ -58,6 +62,7 @@ instance Bi T.BlockHeaderStub where
 -- 45*10^9 * 10^6 (maxbound)     |      72 bits      |
 -- maxbound - 1                  |      72 bits      |
 
-instance Bi Coin where
+instance BiEnc Coin where
     encode = encode . unsafeGetCoin
+instance BiDec Coin where
     decode = Coin <$> decode

@@ -12,7 +12,7 @@ import qualified Data.Text.Buildable as Buildable
 import           Formatting (bprint, build, int, sformat, stext, (%))
 import           Serokell.Util (Color (Magenta), colorize, listJson)
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import           Pos.Binary.Core.Block ()
 import           Pos.Core.Block.Blockchain (GenericBlock (..), GenericBlockHeader (..), gbHeader,
                                             gbhConsensus)
@@ -30,7 +30,7 @@ import           Pos.Crypto (hashHexF)
 -- Buildable
 ----------------------------------------------------------------------------
 
-instance Bi BlockHeader => Buildable GenesisBlockHeader where
+instance BiEnc BlockHeader => Buildable GenesisBlockHeader where
     build gbh@UnsafeGenericBlockHeader {..} =
         bprint
             ("GenesisBlockHeader:\n"%
@@ -48,7 +48,7 @@ instance Bi BlockHeader => Buildable GenesisBlockHeader where
         gbhHeaderHash = blockHeaderHash $ Left gbh
         GenesisConsensusData {..} = _gbhConsensus
 
-instance Bi BlockHeader => Buildable GenesisBlock where
+instance BiEnc BlockHeader => Buildable GenesisBlock where
     build UnsafeGenericBlock {..} =
         bprint
             (stext%":\n"%
@@ -84,11 +84,11 @@ instance HasEpochOrSlot GenesisBlock where
 -- instead of @Bi GenesisBlockHeader@. We compute header's hash by
 -- converting it to a BlockHeader first.
 
-instance Bi BlockHeader =>
+instance BiEnc BlockHeader =>
          HasHeaderHash GenesisBlockHeader where
     headerHash = blockHeaderHash . Left
 
-instance Bi BlockHeader =>
+instance BiEnc BlockHeader =>
          HasHeaderHash GenesisBlock where
     headerHash = blockHeaderHash . Left . _gbHeader
 
@@ -101,5 +101,5 @@ instance HasDifficulty GenesisBlockHeader where
 instance HasDifficulty GenesisBlock where
     difficultyL = gbHeader . difficultyL
 
-instance Bi BlockHeader => IsHeader GenesisBlockHeader
-instance Bi BlockHeader => IsGenesisHeader GenesisBlockHeader
+instance BiEnc BlockHeader => IsHeader GenesisBlockHeader
+instance BiEnc BlockHeader => IsGenesisHeader GenesisBlockHeader
