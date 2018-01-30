@@ -52,6 +52,7 @@ library
                      , cardano-sl-networking
                      , cardano-sl-util
                      , conduit
+                     , containers
                      , ether
                      , formatting
                      , generic-arbitrary

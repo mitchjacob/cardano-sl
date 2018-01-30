@@ -31,7 +31,7 @@ import qualified Data.Text.Buildable
 import qualified Database.RocksDB as Rocks
 import           Formatting (bprint, int, sformat, stext, (%))
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiDec, BiEnc)
 import           Pos.Binary.Core ()
 import           Pos.Binary.Crypto ()
 import           Pos.Core.Common (ChainDifficulty, HeaderHash)
@@ -48,12 +48,12 @@ import           Pos.Util.Util (maybeThrow)
 ----------------------------------------------------------------------------
 
 gsGetBi
-    :: (MonadDBRead m, Bi v)
+    :: (MonadDBRead m, BiDec v)
     => ByteString -> m (Maybe v)
 gsGetBi k = dbGetBi GStateDB k
 
 gsPutBi
-    :: (MonadDB m, Bi v)
+    :: (MonadDB m, BiEnc v)
     => ByteString -> v -> m ()
 gsPutBi = dbPutBi GStateDB
 

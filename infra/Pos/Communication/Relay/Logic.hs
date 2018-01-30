@@ -40,7 +40,7 @@ import           Node.Message.Class (Message)
 import           System.Wlog (WithLogger, logDebug, logError, logWarning)
 import           Universum
 
-import           Pos.Binary.Class (Bi (..))
+import           Pos.Binary.Class (Bi)
 import           Pos.Communication.Limits.Instances ()
 import           Pos.Communication.Limits.Types (MessageLimited, recvLimited)
 import           Pos.Communication.Listener (listenerConv)
@@ -191,8 +191,12 @@ handleDataDo provenance mkMsg enqueue contentsToKey handleData dmContents = do
         -- IMPORTANT that we propagate it asynchronously.
         -- enqueueMsg can do that: simply don't force the values in
         -- the resulting map.
-        (ResMsg dmKey True <$ propagateData enqueue (InvReqDataPM (mkMsg (OriginForward provenance)) dmKey dmContents))
-        (ResMsg dmKey False <$ logDebug (sformat ("Ignoring data "%build%" for key "%build) dmContents dmKey))
+        (ResMsg dmKey True <$
+         propagateData enqueue
+             (InvReqDataPM (mkMsg (OriginForward provenance)) dmKey dmContents))
+        (ResMsg dmKey False <$
+         logDebug (sformat ("Ignoring data "%build%" for key "%build)
+                           dmContents dmKey))
 
 -- | Synchronously propagate data.
 relayMsg
@@ -218,15 +222,14 @@ propagateData enqueue pm = case pm of
         logDebug $ sformat
             ("Propagation data with key: "%build) key
         enqueue msg $ \peer _ ->
-            pure $ Conversation $ (void <$> invReqDataFlowDo "propagation" key contents peer)
+            pure $ Conversation $
+            (void <$> invReqDataFlowDo "propagation" key contents peer)
     DataOnlyPM msg contents -> do
         logDebug $ sformat
             ("Propagation data: "%build) contents
         enqueue msg $ \__node _ ->
             pure $ Conversation $ doHandler contents
-
   where
-
     doHandler
         :: contents1
         -> ConversationActions
@@ -262,7 +265,8 @@ relayListenersOne
   => OQ.OutboundQ pack NodeId Bucket -> EnqueueMsg m -> Relay m -> MkListeners m
 relayListenersOne oq enqueue (InvReqData mP irdP@InvReqDataParams{..}) =
     constantListeners $
-    [handleReqL oq handleReq, invDataListener oq enqueue irdP] ++ handleMempoolL oq mP
+    [handleReqL oq handleReq, invDataListener oq enqueue irdP] ++
+    handleMempoolL oq mP
 relayListenersOne oq enqueue (Data DataParams{..}) =
     constantListeners $
     [handleDataOnlyL oq enqueue dataMsgType (handleDataOnly enqueue)]
@@ -294,24 +298,22 @@ invDataListener
   -> InvReqDataParams key contents m
   -> (ListenerSpec m, OutSpecs)
 invDataListener oq enqueue InvReqDataParams{..} = listenerConv oq $ \__ourVerInfo nodeId conv ->
-    let handlingLoop = do
-            inv' <- recvLimited conv
-            whenJust inv' $ expectInv $ \InvMsg{..} -> do
-                useful <- handleInvDo (handleInv nodeId) imKey
-                case useful of
-                    Nothing -> send conv (Left (ReqMsg Nothing))
-                    Just ne -> do
-                        send conv $ Left (ReqMsg (Just ne))
-                        dt' <- recvLimited conv
-                        whenJust dt' $ expectData $ \DataMsg{..} -> do
-                              res <- handleDataDo nodeId invReqMsgType enqueue contentsToKey (handleData nodeId) dmContents
-                              send conv $ Right res
-                              -- handlingLoop
+    let handlingLoop = whenJustM (recvLimited conv) $ expectInv $ \InvMsg{..} -> do
+            useful <- handleInvDo (handleInv nodeId) imKey
+            case useful of
+                Nothing -> send conv (Left (ReqMsg Nothing))
+                Just ne -> do
+                    send conv $ Left (ReqMsg (Just ne))
+                    dt' <- recvLimited conv
+                    whenJust dt' $ expectData $ \DataMsg{..} -> do
+                          res <- handleDataDo nodeId invReqMsgType enqueue contentsToKey (handleData nodeId) dmContents
+                          send conv $ Right res
+                          -- handlingLoop
 
-                              -- TODO CSL-1148 Improve relaing: support multiple data
-                              -- Need to receive Inv and Data messages simultaneously
-                              -- Maintain state of sent Reqs
-                              -- And check data we are sent is what we expect (currently not)
+                          -- TODO CSL-1148 Improve relaing: support multiple data
+                          -- Need to receive Inv and Data messages simultaneously
+                          -- Maintain state of sent Reqs
+                          -- And check data we are sent is what we expect (currently not)
     in handlingLoop
 
 relayPropagateOut :: Message Void => [Relay m] -> OutSpecs

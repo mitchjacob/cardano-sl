@@ -22,6 +22,7 @@ import           Universum
 import           Control.Lens (at, uses, (%=), (+=), (-=), (.=))
 import qualified Data.Cache.LRU as LRU
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Set as S
 import           Mockable (CurrentTime, Mockable, currentTime)
 
 import           Pos.Binary.Class (biSize)
@@ -51,7 +52,11 @@ import           Pos.Util.Concurrent.PriorityLock (Priority (..))
 getDlgMempool
     :: (MonadIO m, MonadDBRead m, MonadDelegation ctx m, MonadMask m)
     => m DlgPayload
-getDlgMempool = UnsafeDlgPayload <$> (runDelegationStateAction $ uses dwProxySKPool HM.elems)
+getDlgMempool = do
+    sks <- runDelegationStateAction $ uses dwProxySKPool HM.elems
+    let s = S.fromList sks
+    when (S.size s /= length sks) $ error "getDlgMempool: found duplicates"
+    pure $ DlgPayload s
 
 -- | Clears delegation mempool.
 clearDlgMemPool

@@ -10,7 +10,7 @@ import           Universum
 import           Control.Lens (Getter, choosing, lens, to)
 import qualified Data.Text.Buildable as Buildable
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import           Pos.Core.Block.Blockchain (GenericBlock (..))
 import           Pos.Core.Block.Genesis ()
 import           Pos.Core.Block.Main ()
@@ -24,7 +24,7 @@ import           Pos.Core.Slotting.Types (EpochOrSlot (..))
 -- Buildable
 ----------------------------------------------------------------------------
 
-instance Bi BlockHeader =>
+instance BiEnc BlockHeader =>
          Buildable BlockHeader where
     build = either Buildable.build Buildable.build
 
@@ -32,11 +32,11 @@ instance Bi BlockHeader =>
 -- HasHeaderHash
 ----------------------------------------------------------------------------
 
-instance Bi BlockHeader =>
+instance BiEnc BlockHeader =>
          HasHeaderHash BlockHeader where
     headerHash = blockHeaderHash
 
-instance Bi BlockHeader =>
+instance BiEnc BlockHeader =>
          HasHeaderHash Block where
     headerHash = blockHeaderHash . getBlockHeader
 
@@ -65,7 +65,7 @@ instance HasDifficulty Block where
 -- IsHeader
 ----------------------------------------------------------------------------
 
-instance Bi BlockHeader => IsHeader BlockHeader
+instance BiEnc BlockHeader => IsHeader BlockHeader
 
 ----------------------------------------------------------------------------
 -- HasPrevBlock

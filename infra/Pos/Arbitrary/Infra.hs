@@ -18,7 +18,6 @@ import           Pos.Communication.Types.Relay (DataMsg (..), InvMsg (..), Mempo
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Core.Delegation (ProxySKHeavy)
 import           Pos.DHT (DHTData (..), DHTKey (..))
-import           Pos.Util.Verification (Ver (..))
 
 deriving instance Arbitrary DHTData
 
@@ -44,6 +43,6 @@ instance Arbitrary VerInfo where
     arbitrary = genericArbitrary
     shrink = genericShrink
 
-instance HasConfiguration => Arbitrary (DataMsg (ProxySKHeavy 'Ver)) where
+instance HasConfiguration => Arbitrary (DataMsg ProxySKHeavy) where
     arbitrary = DataMsg <$> arbitrary
     shrink = genericShrink

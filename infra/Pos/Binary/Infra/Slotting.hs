@@ -8,7 +8,7 @@ import           Universum
 
 import           Data.Time.Units (Millisecond)
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Field (..), deriveSimpleBi)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Field (..), deriveSimpleBi)
 import           Pos.Binary.Core ()
 import           Pos.Core.Slotting (TimeDiff)
 import           Pos.Slotting.Types (EpochSlottingData (..), SlottingData, createSlottingDataUnsafe,
@@ -21,8 +21,9 @@ deriveSimpleBi ''EpochSlottingData [
         Field [| esdStartDiff    :: TimeDiff    |]
     ]]
 
-instance Bi SlottingData where
+instance BiEnc SlottingData where
     encode slottingData = encode $ getSlottingDataMap slottingData
+instance BiDec SlottingData where
     decode = checkIfSlottindDataValid $ decode
       where
         -- We first check if the data we are trying to decode is valid.

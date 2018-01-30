@@ -25,6 +25,7 @@ import           Serokell.Util (listJson, pairF)
 import           Pos.Binary.Class (BiEnc)
 import           Pos.Core.Slotting.Types (EpochIndex)
 import           Pos.Crypto (Hash, ProxySecretKey (..), ProxySignature, hash)
+
 ----------------------------------------------------------------------------
 -- Proxy signatures and signing keys
 ----------------------------------------------------------------------------
@@ -41,6 +42,7 @@ data LightDlgIndices =
     deriving (Show, Eq, Ord, Generic)
 
 instance NFData LightDlgIndices
+instance Hashable LightDlgIndices
 
 instance Buildable LightDlgIndices where
     build (LightDlgIndices p) = bprint pairF p
@@ -62,6 +64,7 @@ data HeavyDlgIndex =
     deriving (Show, Eq, Ord, Generic)
 
 instance NFData HeavyDlgIndex
+instance Hashable HeavyDlgIndex
 
 instance Buildable HeavyDlgIndex where
     build (HeavyDlgIndex i) = bprint build i
@@ -78,15 +81,15 @@ type ProxySKHeavy = ProxySecretKey HeavyDlgIndex
 
 -- | 'DlgPayload' is put into 'MainBlock' and is a set of heavyweight
 -- proxy signing keys.
-newtype DlgPayload = UnsafeDlgPayload
+newtype DlgPayload = DlgPayload
     { getDlgPayload :: Set ProxySKHeavy
     } deriving (Show, Eq, Generic, NFData)
 
 instance Default DlgPayload where
-    def = UnsafeDlgPayload mempty
+    def = DlgPayload mempty
 
 instance Buildable DlgPayload where
-    build (UnsafeDlgPayload psks) =
+    build (DlgPayload psks) =
         bprint
             ("proxy signing keys ("%int%" items): "%listJson%"\n")
             (S.size psks) (toList psks)

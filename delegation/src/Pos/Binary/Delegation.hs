@@ -6,13 +6,14 @@ module Pos.Binary.Delegation
 
 import           Universum
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Field (..), deriveSimpleBiCxt)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Field (..), deriveSimpleBiCxt)
 import           Pos.Binary.Core ()
 import           Pos.Binary.Crypto ()
 import           Pos.Communication.Types.Relay (DataMsg (..))
 import           Pos.Core (ProxySKHeavy, StakeholderId)
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Delegation.Types (DlgUndo (..))
+import           Pos.Util.Verification (Unver)
 
 deriveSimpleBiCxt [t|HasConfiguration|] ''DlgUndo [
     Cons 'DlgUndo [
@@ -20,6 +21,7 @@ deriveSimpleBiCxt [t|HasConfiguration|] ''DlgUndo [
         Field [| duPrevEpochPosted :: HashSet StakeholderId |]
     ]]
 
-instance HasConfiguration => Bi (DataMsg ProxySKHeavy) where
+instance HasConfiguration => BiEnc (DataMsg ProxySKHeavy) where
     encode = encode . dmContents
+instance HasConfiguration => BiDec (DataMsg (Unver ProxySKHeavy)) where
     decode = DataMsg <$> decode

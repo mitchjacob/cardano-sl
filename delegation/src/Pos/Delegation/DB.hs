@@ -63,6 +63,7 @@ import           Pos.DB.Class (DBIteratorClass (..), DBTag (..), MonadDB, MonadD
 import           Pos.DB.GState.Common (gsGetBi, writeBatchGState)
 import           Pos.Delegation.Cede.Types (DlgEdgeAction (..))
 import           Pos.Delegation.Helpers (isRevokePsk)
+import           Pos.Util.Verification (getUnverUnsafe)
 
 ----------------------------------------------------------------------------
 -- Getters/direct accessors
@@ -73,7 +74,8 @@ import           Pos.Delegation.Helpers (isRevokePsk)
 getPskByIssuer
     :: MonadDBRead m
     => Either PublicKey StakeholderId -> m (Maybe ProxySKHeavy)
-getPskByIssuer (either addressHash identity -> issuer) = gsGetBi (pskKey issuer)
+getPskByIssuer (either addressHash identity -> issuer) =
+    fmap getUnverUnsafe <$> gsGetBi (pskKey issuer)
 
 -- | Checks if stakeholder is psk issuer.
 isIssuerByAddressHash :: MonadDBRead m => StakeholderId -> m Bool

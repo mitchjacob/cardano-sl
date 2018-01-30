@@ -350,7 +350,7 @@ dlgVerifyBlocks blocks = do
 
         ------------- [Payload] -------------
 
-        let proxySKs = getDlgPayload $ view mainBlockDlgPayload blk
+        let proxySKs = toList $ getDlgPayload $ view mainBlockDlgPayload blk
             allIssuers = map pskIssuerPk proxySKs
 
         -- Collect rollback info (all certificates we'll
@@ -434,12 +434,13 @@ dlgApplyBlocks dlgBlunds = do
     applyBlock ((ComponentBlockMain header payload), _) = do
         -- for main blocks we can get psks directly from the block,
         -- though it's duplicated in the undo.
-        let proxySKs = getDlgPayload payload
+        let proxySKs = toList $ getDlgPayload payload
         if null proxySKs then pure mempty else do
             let issuers = map pskIssuerPk proxySKs
                 edgeActions = map pskToDlgEdgeAction proxySKs
                 postedThisEpoch = SomeBatchOp $ map (GS.AddPostedThisEpoch . addressHash) issuers
-            transCorrections <- calculateTransCorrections $ HS.fromList edgeActions
+            transCorrections <-
+                calculateTransCorrections $ HS.fromList edgeActions
             let batchOps =
                     SomeBatchOp (map GS.PskFromEdgeAction edgeActions) <>
                     transCorrections <>
@@ -468,7 +469,7 @@ dlgRollbackBlocks dlgBlunds = do
         -- We should restore "this epoch posted" set to one from the undo
         pure $ SomeBatchOp $ map GS.AddPostedThisEpoch $ HS.toList duPrevEpochPosted
     rollbackBlund (ComponentBlockMain _ payload, DlgUndo{..}) = do
-        let proxySKs = getDlgPayload payload
+        let proxySKs = toList $ getDlgPayload payload
             issuers = map pskIssuerPk proxySKs
             backDeleted = issuers \\ map pskIssuerPk duPsks
             edgeActions = map (DlgEdgeDel . addressHash) backDeleted

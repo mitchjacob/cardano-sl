@@ -20,13 +20,12 @@ import           Formatting (bprint, (%))
 import           Serokell.Util.Text (listJson)
 
 import           Pos.Core (ComponentBlock (..), ProxySKHeavy, StakeholderId)
-import           Pos.Core.Delegation (DlgPayload (..), checkDlgPayload)
+import           Pos.Core.Delegation (DlgPayload (..))
 import           Pos.Crypto (PublicKey)
-import           Pos.Util.Verification (Ver (..))
 
 -- | Undo for the delegation component.
 data DlgUndo = DlgUndo
-    { duPsks            :: ![(ProxySKHeavy 'Ver)]
+    { duPsks            :: ![ProxySKHeavy]
       -- ^ PSKs we've modified when applying the block (by deleting or
       -- overwriting).
     , duPrevEpochPosted :: !(HashSet StakeholderId)
@@ -44,17 +43,17 @@ instance Buildable DlgUndo where
                duPsks duPrevEpochPosted
 
 -- | Map from issuer public keys to related heavy certs.
-type DlgMemPool = HashMap PublicKey (ProxySKHeavy 'Ver)
+type DlgMemPool = HashMap PublicKey ProxySKHeavy
 
 -- | Heavyweight PSK with real leader public key (because heavyweight
 -- psks have redelegation feature, so pskIssuerPk hPsk /= leader in
 -- general case). This is used to create a block header only.
-type ProxySKBlockInfo = Maybe (ProxySKHeavy 'Ver, PublicKey)
+type ProxySKBlockInfo = Maybe (ProxySKHeavy, PublicKey)
 
 ----------------------------------------------------------------------------
 -- DlgBlock
 ----------------------------------------------------------------------------
 
-type DlgBlock = ComponentBlock (DlgPayload 'Ver)
+type DlgBlock = ComponentBlock DlgPayload
 
 type DlgBlund = (DlgBlock, DlgUndo)

@@ -35,4 +35,4 @@ instance BiDec (Unver DlgPayload) where
             asSet = S.fromList <$> (sequence psks :: Unver [ProxySKHeavy])
         when (length psks /= length (ordNub psks)) $
               fail "DlgPayload is not a set: it has duplicates"
-        pure $ UnsafeDlgPayload <$> asSet
+        pure $ DlgPayload <$> asSet

@@ -11,13 +11,13 @@ module Pos.Communication.BiP
 import           Universum
 
 import           Control.Monad.ST
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Builder.Extra as Builder
+import qualified Data.ByteString.Lazy as LBS
 
 import           Node.Message.Class (Packing (..), PackingType (..), Serializable (..))
 import qualified Node.Message.Decoder as TW
 
-import           Pos.Binary.Class (Bi (..))
+import           Pos.Binary.Class (Bi, BiDec)
 import qualified Pos.Binary.Class as Bi
 
 data BiP = BiP
@@ -38,7 +38,7 @@ biPackMsg = Builder.toLazyByteStringWith strategy mempty . Bi.toBuilder
   where
     strategy = Builder.untrimmedStrategy 1024 4096
 
-biUnpackMsg :: Bi t => Bi.Decoder RealWorld t -> TW.Decoder (UnpackM BiP) t
+biUnpackMsg :: BiDec t => Bi.Decoder RealWorld t -> TW.Decoder (UnpackM BiP) t
 biUnpackMsg decoder = TW.Decoder (fromBiDecoder Proxy (Bi.deserialiseIncremental decoder))
 
 instance  Bi t => Serializable BiP t where
@@ -47,12 +47,19 @@ instance  Bi t => Serializable BiP t where
 
 type M = ST RealWorld
 
-fromBiDecoder :: Bi t => Proxy t -> M (Bi.IDecode RealWorld t) -> M (TW.DecoderStep M t)
+fromBiDecoder ::
+       BiDec t
+    => Proxy t
+    -> M (Bi.IDecode RealWorld t)
+    -> M (TW.DecoderStep M t)
 fromBiDecoder p x = do
     nextStep <- x
     case nextStep of
-      (Bi.Partial cont)    -> return $ TW.Partial $ \bs -> TW.Decoder $ fromBiDecoder p (cont bs)
-      (Bi.Done bs off t)   -> return (TW.Done bs off t)
+      (Bi.Partial cont)    ->
+          pure $ TW.Partial $ \bs -> TW.Decoder $ fromBiDecoder p (cont bs)
+      (Bi.Done bs off t)   ->
+          pure $ TW.Done bs off t
       (Bi.Fail bs off exn) -> do
-          let msg = "fromBiDecoder failure for " <> label p <> ": " <> show exn <> ", leftover: " <> show bs
+          let msg = "fromBiDecoder failure for " <> Bi.label p <>
+                    ": " <> show exn <> ", leftover: " <> show bs
           return (TW.Fail bs off msg)

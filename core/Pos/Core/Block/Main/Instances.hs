@@ -12,7 +12,7 @@ import qualified Data.Text.Buildable as Buildable
 import           Formatting (bprint, build, int, stext, (%))
 import           Serokell.Util (Color (Magenta), colorize, listJson)
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import           Pos.Binary.Core.Block ()
 import           Pos.Core.Block.Blockchain (GenericBlock (..), GenericBlockHeader (..))
 import           Pos.Core.Block.Main.Chain (Body (..), ConsensusData (..))
@@ -34,7 +34,7 @@ import           Pos.Core.Slotting.Types (EpochOrSlot (..), slotIdF)
 import           Pos.Crypto (hashHexF)
 
 
-instance Bi BlockHeader => Buildable MainBlockHeader where
+instance BiEnc BlockHeader => Buildable MainBlockHeader where
     build gbh@UnsafeGenericBlockHeader {..} =
         bprint
             ("MainBlockHeader:\n"%
@@ -58,7 +58,7 @@ instance Bi BlockHeader => Buildable MainBlockHeader where
         gbhHeaderHash = blockHeaderHash $ Right gbh
         MainConsensusData {..} = _gbhConsensus
 
-instance (HasConfiguration, Bi BlockHeader) => Buildable MainBlock where
+instance (HasConfiguration, BiEnc BlockHeader) => Buildable MainBlock where
     build UnsafeGenericBlock {..} =
         bprint
             (stext%":\n"%
@@ -97,11 +97,11 @@ instance HasEpochOrSlot MainBlock where
 -- instead of @Bi MainBlockHeader@. We compute header's hash by
 -- converting it to a BlockHeader first.
 
-instance Bi BlockHeader =>
+instance BiEnc BlockHeader =>
          HasHeaderHash MainBlockHeader where
     headerHash = blockHeaderHash . Right
 
-instance Bi BlockHeader =>
+instance BiEnc BlockHeader =>
          HasHeaderHash MainBlock where
     headerHash = blockHeaderHash . Right . _gbHeader
 
@@ -132,8 +132,8 @@ instance HasBlockVersion MainBlockHeader where
 instance HasSoftwareVersion MainBlockHeader where
     softwareVersionL = mainHeaderSoftwareVersion
 
-instance Bi BlockHeader => IsHeader MainBlockHeader
+instance BiEnc BlockHeader => IsHeader MainBlockHeader
 
-instance Bi BlockHeader => IsMainHeader MainBlockHeader where
+instance BiEnc BlockHeader => IsMainHeader MainBlockHeader where
     headerSlotL = mainHeaderSlot
     headerLeaderKeyL = mainHeaderLeaderKey
