@@ -13,12 +13,10 @@ module Pos.Communication.Relay.Logic
        , DataMsg (..)
        , InvOrData
        , ReqOrRes
+
        , relayListeners
-       , relayMsg
-       , propagateData
        , relayPropagateOut
        , handleDataDo
-       , handleInvDo
 
        , invReqDataFlow
        , invReqDataFlowTK
@@ -197,16 +195,6 @@ handleDataDo provenance mkMsg enqueue contentsToKey handleData dmContents = do
         (ResMsg dmKey False <$
          logDebug (sformat ("Ignoring data "%build%" for key "%build)
                            dmContents dmKey))
-
--- | Synchronously propagate data.
-relayMsg
-    :: ( RelayWorkMode ctx m
-       , Message Void
-       )
-    => EnqueueMsg m
-    -> PropagationMsg
-    -> m ()
-relayMsg enqueue pm = void $ propagateData enqueue pm >>= waitForConversations
 
 -- | Asynchronously propagate data.
 propagateData

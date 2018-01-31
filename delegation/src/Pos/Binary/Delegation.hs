@@ -33,5 +33,6 @@ instance HasConfiguration => BiDec DlgUndo where
 
 instance HasConfiguration => BiEnc (DataMsg ProxySKHeavy) where
     encode = encode . dmContents
+
 instance HasConfiguration => BiDec (DataMsg (Unver ProxySKHeavy)) where
     decode = DataMsg <$> decode

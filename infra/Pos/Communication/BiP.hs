@@ -41,7 +41,7 @@ biPackMsg = Builder.toLazyByteStringWith strategy mempty . Bi.toBuilder
 biUnpackMsg :: BiDec t => Bi.Decoder RealWorld t -> TW.Decoder (UnpackM BiP) t
 biUnpackMsg decoder = TW.Decoder (fromBiDecoder Proxy (Bi.deserialiseIncremental decoder))
 
-instance  Bi t => Serializable BiP t where
+instance Bi t => Serializable BiP t where
     packMsg _   = pure . biPackMsg . Bi.encode
     unpackMsg _ = biUnpackMsg Bi.decode
 

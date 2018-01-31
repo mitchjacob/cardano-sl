@@ -6,9 +6,10 @@ module Pos.Communication.Listener
        ( listenerConv
        ) where
 
+import           Universum
+
 import qualified Node as N
 import           System.Wlog (WithLogger)
-import           Universum
 
 import qualified Network.Broadcast.OutboundQueue as OQ
 import           Pos.Binary.Class (Bi)
@@ -21,6 +22,10 @@ import           Pos.Network.Types (Bucket)
 
 -- TODO automatically provide a 'recvLimited' here by using the
 -- 'MessageLimited'?
+--
+-- TODO Binary constraints should be BiEnc snd and BiDec rcv, but
+-- "Node" requires both anyway, because Serializable class is enc+dec
+-- at the same time.
 listenerConv
     :: forall snd rcv pack m .
        ( Bi snd

@@ -100,6 +100,9 @@ data RelayError = UnexpectedInv
 
 instance Exception RelayError
 
+-- TODO Bi intstances are not needed, we only want BiEnc. Though it's
+-- not possible to do so, because 'Serializable' from
+-- "Node.Message.Class" is decode-and-encode class.
 data PropagationMsg where
     InvReqDataPM ::
         ( Message (InvOrData key contents)

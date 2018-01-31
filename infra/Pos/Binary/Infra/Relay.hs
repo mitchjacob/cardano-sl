@@ -5,9 +5,10 @@ module Pos.Binary.Infra.Relay
 import           Universum
 
 import           Pos.Binary.Class (BiDec (..), BiEnc (..))
-import           Pos.Communication.Relay.Types (InvMsg (..), MempoolMsg (..), ReqMsg (..),
-                                                ResMsg (..))
+import           Pos.Communication.Relay.Types (DataMsg (..), InvMsg (..), MempoolMsg (..),
+                                                ReqMsg (..), ResMsg (..))
 import           Pos.Util.Util (cborError)
+import           Pos.Util.Verification (Unver, getUnverUnsafe)
 
 instance BiEnc key => BiEnc (InvMsg key) where
     encode = encode . imKey
@@ -33,3 +34,8 @@ instance Typeable tag => BiDec (MempoolMsg tag) where
         x <- decode @Word8
         when (x /= 228) $ cborError "wrong byte"
         pure MempoolMsg
+
+instance (Typeable a, BiEnc (DataMsg a)) => BiEnc (DataMsg (Unver a)) where
+    -- It's safe to use it here, because sometimes we want to
+    -- propagate the data without verifying it.
+    encode (DataMsg c) = encode $ DataMsg $ getUnverUnsafe c
