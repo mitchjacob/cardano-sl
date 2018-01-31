@@ -5,7 +5,8 @@
 -- See docs/proposals/serialization.md.
 
 module Pos.Util.Verification
-    ( Unver (..)
+    ( Unver
+    , getUnverUnsafe
     , mkUnver
 
     , VerM
@@ -20,6 +21,8 @@ module Pos.Util.Verification
 import           Universum
 
 import qualified Data.Text as T
+import qualified Data.Text.Buildable
+import           Formatting (bprint, build, (%))
 
 import           Pos.Util.Util (eitherToThrow)
 
@@ -76,3 +79,10 @@ runVerify (Unver a) = first (VerError . T.intercalate "." . reverse) . getVerM $
 
 runVerifyFail :: (MonadThrow m, Verifiable a) => Unver a -> m a
 runVerifyFail = eitherToThrow . runVerify
+
+----------------------------------------------------------------------------
+-- Instances
+----------------------------------------------------------------------------
+
+instance Buildable a => Buildable (Unver a) where
+    build = bprint ("Unver "%build)

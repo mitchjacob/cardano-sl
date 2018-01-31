@@ -34,7 +34,7 @@ import           System.Directory (doesFileExist)
 import           System.Wlog (HasLoggerName (modifyLoggerName), WithLogger, logDebug, logError,
                               logInfo, logWarning, usingLoggerName)
 
-import           Pos.Binary.Class (Bi (..), decodeFull)
+import           Pos.Binary.Class (Bi, decodeFull)
 import           Pos.Binary.Infra.DHTModel ()
 import           Pos.DHT.Configuration (enhancedMessageBroadcast, enhancedMessageTimeout,
                                         neighborsSendThreshold)

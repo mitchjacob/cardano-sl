@@ -50,10 +50,10 @@ import           Pos.Communication.Protocol (Conversation (..), ConversationActi
                                              toOutSpecs, waitForConversations)
 import           Pos.Communication.Relay.Class (DataParams (..), InvReqDataParams (..),
                                                 MempoolParams (..), Relay (..))
-import           Pos.Communication.Relay.Types (PropagationMsg (..))
+import           Pos.Communication.Relay.Types (DataMsg (..), InvMsg (..), InvOrData,
+                                                MempoolMsg (..), PropagationMsg (..), ReqMsg (..),
+                                                ReqOrRes, ResMsg (..))
 import           Pos.Communication.Relay.Util (expectData, expectInv)
-import           Pos.Communication.Types.Relay (DataMsg (..), InvMsg (..), InvOrData,
-                                                MempoolMsg (..), ReqMsg (..), ReqOrRes, ResMsg (..))
 import           Pos.Infra.Configuration (HasInfraConfiguration)
 import           Pos.Network.Types (Bucket)
 
@@ -263,11 +263,11 @@ relayListenersOne
      , Message Void
      )
   => OQ.OutboundQ pack NodeId Bucket -> EnqueueMsg m -> Relay m -> MkListeners m
-relayListenersOne oq enqueue (InvReqData mP irdP@InvReqDataParams{..}) =
+relayListenersOne oq enqueue (RelayInvReqData mP irdP@InvReqDataParams{..}) =
     constantListeners $
     [handleReqL oq handleReq, invDataListener oq enqueue irdP] ++
     handleMempoolL oq mP
-relayListenersOne oq enqueue (Data DataParams{..}) =
+relayListenersOne oq enqueue (RelayData DataParams{..}) =
     constantListeners $
     [handleDataOnlyL oq enqueue dataMsgType (handleDataOnly enqueue)]
 
@@ -320,14 +320,14 @@ relayPropagateOut :: Message Void => [Relay m] -> OutSpecs
 relayPropagateOut = mconcat . map propagateOutImpl
 
 propagateOutImpl :: Message Void => Relay m -> OutSpecs
-propagateOutImpl (InvReqData _ irdp) = toOutSpecs
+propagateOutImpl (RelayInvReqData _ irdp) = toOutSpecs
       [ convH invProxy reqResProxy ]
   where
     invProxy    = (const Proxy :: InvReqDataParams key contents m
                                -> Proxy (InvOrData key contents)) irdp
     reqResProxy = (const Proxy :: InvReqDataParams key contents m
                                -> Proxy (ReqOrRes key)) irdp
-propagateOutImpl (Data dp) = toOutSpecs
+propagateOutImpl (RelayData dp) = toOutSpecs
       [ convH dataProxy (Proxy @Void)
       ]
   where

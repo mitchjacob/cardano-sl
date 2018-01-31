@@ -1,4 +1,3 @@
-
 module Pos.Communication.Specs
        ( createOutSpecs
        ) where
@@ -7,7 +6,7 @@ import           Node.Message.Class (Message (..))
 import           Universum
 
 import           Pos.Communication.Protocol (OutSpecs, convH, toOutSpecs)
-import           Pos.Communication.Types.Relay (InvOrData, ReqOrRes)
+import           Pos.Communication.Relay.Types (InvOrData, ReqOrRes)
 
 -- FIXME (avieth)
 -- This looks to be misplaced and misnamed.

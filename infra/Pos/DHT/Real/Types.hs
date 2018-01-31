@@ -13,7 +13,7 @@ import           Control.Concurrent.STM (TVar)
 import qualified Network.Kademlia as K
 
 import           Data.Bifunctor (bimap)
-import           Pos.Binary.Class (Bi (..), deserializeOrFail', serialize')
+import           Pos.Binary.Class (Bi, deserializeOrFail', serialize')
 import           Pos.DHT.Model.Types (DHTData, DHTKey)
 import           Pos.Util.TimeWarp (NetworkAddress)
 

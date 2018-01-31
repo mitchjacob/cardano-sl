@@ -15,35 +15,36 @@ import           Pos.Binary.Class (Bi)
 import           Universum
 
 import           Pos.Communication.Limits.Types (MessageLimited)
-import           Pos.Communication.Types.Protocol (EnqueueMsg, Msg, NodeId)
-import           Pos.Communication.Types.Relay (DataMsg, InvMsg, InvOrData, MempoolMsg, ReqMsg,
+import           Pos.Communication.Relay.Types (DataMsg, InvMsg, InvOrData, MempoolMsg, ReqMsg,
                                                 ReqOrRes)
+import           Pos.Communication.Types.Protocol (EnqueueMsg, Msg, NodeId)
 import           Pos.Network.Types (Origin)
 
--- | Data for general Inv/Req/Dat framework
-
+-- | Data for general Inv/Req/Dat framework.
 data Relay m where
-  InvReqData ::
-      ( Buildable contents
-      , Buildable key
-      , Typeable contents
-      , Typeable key
-      , Eq key
-      , Bi (ReqMsg key)
-      , Bi (ReqOrRes key)
-      , Bi (InvOrData key contents)
-      , Message (ReqMsg key)
-      , Message (ReqOrRes key)
-      , Message (InvOrData key contents)
-      , MessageLimited (DataMsg contents) m
-      ) => MempoolParams m -> InvReqDataParams key contents m -> Relay m
-  Data ::
-      ( Buildable contents
-      , Typeable contents
-      , Bi (DataMsg contents)
-      , Message (DataMsg contents)
-      , MessageLimited (DataMsg contents) m
-      ) => DataParams contents m -> Relay m
+    -- | Full-size relay -- receiving, procesing, requesting messages.
+    RelayInvReqData ::
+        ( Buildable contents
+        , Buildable key
+        , Typeable contents
+        , Typeable key
+        , Eq key
+        , Bi (ReqMsg key)
+        , Bi (ReqOrRes key)
+        , Bi (InvOrData key contents)
+        , Message (ReqMsg key)
+        , Message (ReqOrRes key)
+        , Message (InvOrData key contents)
+        , MessageLimited (DataMsg contents) m
+        ) => MempoolParams m -> InvReqDataParams key contents m -> Relay m
+    -- | Data-only relay -- propagation only.
+    RelayData ::
+        ( Buildable contents
+        , Typeable contents
+        , Bi (DataMsg contents)
+        , Message (DataMsg contents)
+        , MessageLimited (DataMsg contents) m
+        ) => DataParams contents m -> Relay m
 
 data MempoolParams m where
     NoMempool :: MempoolParams m
@@ -58,6 +59,7 @@ data MempoolParams m where
       , Typeable key
       ) => Proxy tag -> m [key] -> MempoolParams m
 
+-- | Parameters for 'RelayIvReqData'.
 data InvReqDataParams key contents m = InvReqDataParams
     { invReqMsgType :: !(Origin NodeId -> Msg)
     , contentsToKey :: contents -> m key
@@ -70,6 +72,7 @@ data InvReqDataParams key contents m = InvReqDataParams
       -- ^ Handle data msg and return True if message is to be propagated
     }
 
+-- | Parameters for 'RelayData'.
 data DataParams contents m = DataParams
     { dataMsgType    :: !(Origin NodeId -> Msg)
     , handleDataOnly :: EnqueueMsg m -> NodeId -> contents -> m Bool

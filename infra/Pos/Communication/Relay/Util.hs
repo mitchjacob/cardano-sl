@@ -5,8 +5,8 @@ module Pos.Communication.Relay.Util
 
 import           Universum
 
-import           Pos.Communication.Relay.Types (RelayError (UnexpectedData, UnexpectedInv))
-import           Pos.Communication.Types.Relay (DataMsg, InvMsg, InvOrData)
+import           Pos.Communication.Relay.Types (DataMsg, InvMsg, InvOrData,
+                                                RelayError (UnexpectedData, UnexpectedInv))
 
 expectInv
     :: MonadThrow m

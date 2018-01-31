@@ -5,7 +5,7 @@ module Pos.Binary.Infra.Relay
 import           Universum
 
 import           Pos.Binary.Class (BiDec (..), BiEnc (..))
-import           Pos.Communication.Types.Relay (InvMsg (..), MempoolMsg (..), ReqMsg (..),
+import           Pos.Communication.Relay.Types (InvMsg (..), MempoolMsg (..), ReqMsg (..),
                                                 ResMsg (..))
 import           Pos.Util.Util (cborError)
 

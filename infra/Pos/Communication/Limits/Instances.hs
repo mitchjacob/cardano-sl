@@ -12,7 +12,7 @@ import           Universum
 
 import qualified Pos.Communication.Configuration as Conf
 import           Pos.Communication.Limits.Types (Limit (..), MessageLimited (..))
-import           Pos.Communication.Types.Relay (InvMsg, MempoolMsg (..), ReqMsg, ResMsg)
+import           Pos.Communication.Relay.Types (InvMsg, MempoolMsg (..), ReqMsg, ResMsg)
 import           Pos.Infra.Configuration (HasInfraConfiguration)
 
 ----------------------------------------------------------------------------
