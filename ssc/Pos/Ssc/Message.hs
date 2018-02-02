@@ -25,7 +25,7 @@ import           Formatting (bprint, build, (%))
 import           Node.Message.Class (Message)
 
 import           Pos.Communication.Limits.Types (MessageLimited)
-import           Pos.Communication.Types.Relay (DataMsg, InvOrData, ReqMsg, ReqOrRes)
+import           Pos.Communication.Relay.Types (DataMsg, InvOrData, ReqMsg, ReqOrRes)
 import           Pos.Core (HasConfiguration, StakeholderId, VssCertificate, addressHash, getCertId)
 import           Pos.Core.Ssc (InnerSharesMap, Opening, SignedCommitment)
 import           Pos.Ssc.Toss.Types (SscTag (..))

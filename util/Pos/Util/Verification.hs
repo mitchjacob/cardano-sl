@@ -10,6 +10,7 @@ module Pos.Util.Verification
     , mkUnver
 
     , VerM
+    , VerError(..)
     , verMFail
     , verMField
 

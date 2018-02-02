@@ -26,12 +26,12 @@ import           Pos.Delegation.Logic (PskHeavyVerdict (..), processProxySKHeavy
 import           Pos.Lrc.Context (HasLrcContext)
 import           Pos.StateLock (StateLock)
 import           Pos.Util (HasLens')
-import           Pos.Util.Verification (Unver, getUnverUnsafe)
+import           Pos.Util.Verification (Unver, VerError (..), runVerify)
 
 -- Message constraints we need to be defined.
 type DlgMessageConstraint m
-     = ( Message (DataMsg ProxySKHeavy)
-       , MessageLimited (DataMsg ProxySKHeavy) m
+     = ( Message (DataMsg (Unver ProxySKHeavy))
+       , MessageLimited (DataMsg (Unver ProxySKHeavy)) m
        )
 
 -- | This is a subset of 'WorkMode'.
@@ -50,17 +50,21 @@ type DlgListenerConstraint ctx m
        , HasDlgConfiguration)
 
 handlePsk :: DlgListenerConstraint ctx m => Unver ProxySKHeavy -> m Bool
-handlePsk p@(getUnverUnsafe -> pSk) = do
-    logDebug $ sformat ("Got request to handle heavyweight psk: "%build) pSk
-    verdict <- processProxySKHeavy pSk
-    logDebug $ sformat ("The verdict for cert "%build%" is: "%shown) pSk verdict
-    case verdict of
-        PHTipMismatch -> do
-            -- We're probably updating state over epoch, so
-            -- leaders can be calculated incorrectly. This is
-            -- really weird and must not happen. We'll just retry.
-            logWarning "Tip mismatch happened in delegation db!"
-            handlePsk p
-        PHAdded -> pure True
-        PHRemoved -> pure True
-        _ -> pure False
+handlePsk pskUnver =
+    case runVerify pskUnver of
+        Right psk -> do
+          logDebug $ sformat ("Got request to handle heavyweight psk: "%build) psk
+          verdict <- processProxySKHeavy psk
+          logDebug $ sformat ("The verdict for cert "%build%" is: "%shown) psk verdict
+          case verdict of
+              PHTipMismatch -> do
+                  -- We're probably updating state over epoch, so
+                  -- leaders can be calculated incorrectly. This is
+                  -- really weird and must not happen. We'll just retry.
+                  logWarning "Tip mismatch happened in delegation db!"
+                  handlePsk pskUnver
+              PHAdded -> pure True
+              PHRemoved -> pure True
+              _ -> pure False
+        Left (VerError err) ->
+            False <$ logWarning ("Somebody sent us invalid psk: " <> err)

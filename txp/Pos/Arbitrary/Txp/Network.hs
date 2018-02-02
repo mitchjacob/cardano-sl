@@ -10,7 +10,7 @@ import           Test.QuickCheck (Arbitrary (..))
 import           Test.QuickCheck.Arbitrary.Generic (genericArbitrary, genericShrink)
 
 import           Pos.Arbitrary.Txp ()
-import           Pos.Communication.Types.Relay (DataMsg (..))
+import           Pos.Communication.Relay.Types (DataMsg (..))
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Txp.Network.Types (TxMsgContents (..))
 

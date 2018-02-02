@@ -17,7 +17,7 @@ import           Test.QuickCheck.Arbitrary.Generic (genericArbitrary, genericShr
 
 import           Pos.Arbitrary.Core.Unsafe ()
 import           Pos.Binary.Ssc ()
-import           Pos.Communication.Types.Relay (DataMsg (..))
+import           Pos.Communication.Relay.Types (DataMsg (..))
 import           Pos.Core (EpochIndex, HasConfiguration, SlotId (..), VssCertificate (..),
                            VssCertificatesMap, mkVssCertificate, mkVssCertificatesMapLossy,
                            vssMaxTTL, vssMinTTL)

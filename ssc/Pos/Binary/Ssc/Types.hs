@@ -4,7 +4,7 @@ module Pos.Binary.Ssc.Types () where
 
 import           Universum
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Field (..), deriveSimpleBi,
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Field (..), deriveSimpleBi,
                                    deriveSimpleBiCxt, encodeListLen, enforceSize)
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Core.Slotting (EpochIndex)
@@ -13,7 +13,7 @@ import           Pos.Core.Ssc (CommitmentsMap, Opening, OpeningsMap, SharesMap, 
 import           Pos.Ssc.Types (SscGlobalState (..), SscSecretStorage (..))
 import           Pos.Ssc.VssCertData (VssCertData (..))
 
-instance HasConfiguration => Bi VssCertData where
+instance HasConfiguration => BiEnc VssCertData where
     encode VssCertData {..} = mconcat
         [ encodeListLen 6
         , encode lastKnownEoS
@@ -25,6 +25,7 @@ instance HasConfiguration => Bi VssCertData where
         , encode whenExpire
         , encode expiredCerts
         ]
+instance HasConfiguration => BiDec VssCertData where
     decode = do
         enforceSize "VssCertData" 6
         lastKnownEoS <- decode
