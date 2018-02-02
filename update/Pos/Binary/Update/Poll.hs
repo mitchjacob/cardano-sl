@@ -4,8 +4,9 @@ module Pos.Binary.Update.Poll
 
 import           Universum
 
-import           Pos.Binary.Class (Bi (..), Cons (..), Field (..), decodeListLenCanonical,
-                                   deriveSimpleBi, deriveSimpleBiCxt, encodeListLen)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Cons (..), Field (..),
+                                   decodeListLenCanonical, deriveSimpleBi, deriveSimpleBiCxt,
+                                   encodeListLen)
 import           Pos.Binary.Infra ()
 import           Pos.Core (ApplicationName, BlockVersion, ChainDifficulty, Coin, EpochIndex,
                            HasConfiguration, HeaderHash, NumSoftwareVersion, SlotId,
@@ -21,9 +22,11 @@ deriveSimpleBi ''U.VoteState [
     Cons 'U.PositiveRevote [],
     Cons 'U.NegativeRevote []]
 
-instance Bi a => Bi (U.PrevValue a) where
-    encode (U.PrevValue a) = encodeListLen 1 <> encode a
-    encode U.NoExist       = encodeListLen 0
+instance BiEnc a => BiEnc (U.PrevValue a) where
+    encode = \case
+        (U.PrevValue a) -> encodeListLen 1 <> encode a
+        U.NoExist       -> encodeListLen 0
+instance BiDec a => BiDec (U.PrevValue a) where
     decode = do
         len <- decodeListLenCanonical
         case len of
