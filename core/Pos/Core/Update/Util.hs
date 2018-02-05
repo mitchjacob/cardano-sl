@@ -30,20 +30,20 @@ import           Distribution.Text (display)
 import           Formatting (Format, build)
 import           Instances.TH.Lift ()
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import           Pos.Binary.Crypto ()
-import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Core.Common.Types (checkCoinPortion)
+import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Core.Update.Types (BlockVersion, BlockVersionModifier (..), SoftforkRule (..),
                                         SoftwareVersion, SystemTag, UpAttributes, UpdateData,
                                         UpdatePayload (..), UpdateProof, UpdateProposal (..),
                                         UpdateProposalToSign (..), UpdateVote (..), VoteId,
                                         checkSoftwareVersion, checkSystemTag)
-import           Pos.Crypto (SafeSigner, SignTag (SignUSProposal, SignUSVote),
-                             checkSig, hash, safeSign, safeToPublic)
+import           Pos.Crypto (SafeSigner, SignTag (SignUSProposal, SignUSVote), checkSig, hash,
+                             safeSign, safeToPublic)
 
 checkUpdatePayload
-    :: (HasConfiguration, MonadError Text m, Bi UpdateProposalToSign)
+    :: (HasConfiguration, MonadError Text m, BiEnc UpdateProposalToSign)
     => UpdatePayload
     -> m ()
 checkUpdatePayload it = do
@@ -89,7 +89,7 @@ checkUpdateVote it =
     sigValid = checkSig SignUSVote (uvKey it) (uvProposalId it, uvDecision it) (uvSignature it)
 
 checkUpdateProposal
-    :: (HasConfiguration, MonadError Text m, Bi UpdateProposalToSign)
+    :: (HasConfiguration, MonadError Text m, BiEnc UpdateProposalToSign)
     => UpdateProposal
     -> m ()
 checkUpdateProposal it = do
@@ -108,7 +108,7 @@ checkUpdateProposal it = do
     forM_ (HM.keys (upData it)) checkSystemTag
 
 mkUpdateProposalWSign
-    :: (HasConfiguration, Bi UpdateProposalToSign)
+    :: (HasConfiguration, BiEnc UpdateProposalToSign)
     => BlockVersion
     -> BlockVersionModifier
     -> SoftwareVersion
@@ -133,7 +133,7 @@ mkVoteId :: UpdateVote -> VoteId
 mkVoteId vote = (uvProposalId vote, uvKey vote, uvDecision vote)
 
 mkUpdateProof
-    :: Bi UpdatePayload
+    :: BiEnc UpdatePayload
     => UpdatePayload -> UpdateProof
 mkUpdateProof = hash
 

@@ -61,7 +61,7 @@ import           Serokell.AcidState ()
 import           Serokell.Data.Memory.Units (Byte, memory)
 import           Serokell.Util.Text (listJson)
 
-import           Pos.Binary.Class (Bi, Raw)
+import           Pos.Binary.Class (BiEnc, Raw)
 import           Pos.Core.Common (CoinPortion, ScriptVersion, TxFeePolicy, addressHash)
 import           Pos.Core.Slotting.Types (EpochIndex, FlatSlotId)
 import           Pos.Crypto (HasCryptoConfiguration, Hash, PublicKey, SafeSigner, SecretKey,
@@ -340,7 +340,7 @@ type UpdateProposals = HashMap UpId UpdateProposal
 
 instance Hashable UpdateProposal
 
-instance Bi UpdateProposal => Buildable UpdateProposal where
+instance BiEnc UpdateProposal => Buildable UpdateProposal where
     build up@UnsafeUpdateProposal {..} =
       bprint (build%
               " { block v"%build%
@@ -361,7 +361,7 @@ instance Bi UpdateProposal => Buildable UpdateProposal where
             | areAttributesKnown upAttributes = "no attributes"
             | otherwise = bprint ("attributes: " %build) attrs
 
-instance (Bi UpdateProposal) =>
+instance (BiEnc UpdateProposal) =>
          Buildable (UpdateProposal, [UpdateVote]) where
     build (up, votes) =
         bprint
@@ -491,7 +491,7 @@ data UpdatePayload = UpdatePayload
 
 instance NFData UpdatePayload
 
-instance (Bi UpdateProposal) => Buildable UpdatePayload where
+instance (BiEnc UpdateProposal) => Buildable UpdatePayload where
     build UpdatePayload {..}
         | null upVotes = formatMaybeProposal upProposal <> ", no votes"
         | otherwise =
@@ -500,7 +500,7 @@ instance (Bi UpdateProposal) => Buildable UpdatePayload where
                 ("\n    votes: "%listJson)
                 (map formatVoteShort upVotes)
 
-formatMaybeProposal :: Bi UpdateProposal => Maybe UpdateProposal -> Builder
+formatMaybeProposal :: BiEnc UpdateProposal => Maybe UpdateProposal -> Builder
 formatMaybeProposal = maybe "no proposal" Buildable.build
 
 instance Default UpdatePayload where

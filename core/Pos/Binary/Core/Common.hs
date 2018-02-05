@@ -37,7 +37,7 @@ deriveSimpleBi ''T.ChainDifficulty [
     ]]
 
 -- | This instance required only for Arbitrary instance of HeaderHash
--- due to @instance Bi a => Hash a@.
+-- due to @instance BiEnc a => Hash a@.
 instance BiEnc T.BlockHeaderStub where
     encode = error "somebody tried to binary encode BlockHeaderStub"
 instance BiDec T.BlockHeaderStub where

@@ -48,8 +48,8 @@ module Pos.Core.Txp
 
 import           Universum
 
-import           Control.Monad.Except (MonadError(throwError))
 import           Control.Lens (makeLenses, makePrisms)
+import           Control.Monad.Except (MonadError (throwError))
 import           Data.Hashable (Hashable)
 import qualified Data.Text.Buildable as Buildable
 import           Data.Vector (Vector)
@@ -59,10 +59,10 @@ import           Serokell.Util.Base16 (base16F)
 import           Serokell.Util.Text (listJson, listJsonIndent)
 import           Serokell.Util.Verify (VerificationRes (..), verResSingleF, verifyGeneric)
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import           Pos.Binary.Core.Address ()
 import           Pos.Binary.Crypto ()
-import           Pos.Core.Common (Address (..), Coin (..), Script, addressHash, coinF, checkCoin)
+import           Pos.Core.Common (Address (..), Coin (..), Script, addressHash, checkCoin, coinF)
 import           Pos.Crypto (Hash, PublicKey, RedeemPublicKey, RedeemSignature, Signature, hash,
                              shortHashF)
 import           Pos.Data.Attributes (Attributes, areAttributesKnown)
@@ -199,7 +199,7 @@ data TxAux = TxAux
 
 instance Hashable Tx
 
-instance Bi Tx => Buildable Tx where
+instance BiEnc Tx => Buildable Tx where
     build tx@(UnsafeTx{..}) =
         bprint
             ("Tx "%build%
@@ -213,15 +213,15 @@ instance Bi Tx => Buildable Tx where
 instance NFData Tx
 
 -- | Specialized formatter for 'Tx'.
-txF :: Bi Tx => Format r (Tx -> r)
+txF :: BiEnc Tx => Format r (Tx -> r)
 txF = build
 
 -- | Specialized formatter for 'TxAux'.
-txaF :: Bi Tx => Format r (TxAux -> r)
+txaF :: BiEnc Tx => Format r (TxAux -> r)
 txaF = later $ \(TxAux tx w) ->
     bprint (build%"\n"%"witnesses: "%listJsonIndent 4) tx w
 
-instance Bi Tx => Buildable TxAux where
+instance BiEnc Tx => Buildable TxAux where
     build = bprint txaF
 
 -- | Verify inputs and outputs are non empty; have enough coins.
@@ -275,8 +275,8 @@ instance NFData TxProof
 
 -- | Construct 'TxProof' which proves given 'TxPayload'.
 -- This will construct a merkle tree, which can be very expensive. Use with
--- care. Bi constraints arise because we need to hash these things.
-mkTxProof :: (Bi Tx,  Bi TxInWitness) => TxPayload -> TxProof
+-- care. BiEnc constraints arise because we need to hash these things.
+mkTxProof :: (BiEnc Tx,  BiEnc TxInWitness) => TxPayload -> TxProof
 mkTxProof UnsafeTxPayload {..} =
     TxProof
     { txpNumber = fromIntegral (length _txpTxs)
@@ -322,7 +322,7 @@ checkTxPayload it = forM_ (_txpTxs it) checkTx
 
 -- | Construct a merkle tree from the transactions in a 'TxPayload'
 -- Use with care; this can be very expensive.
-mkTxPayloadMerkleTree :: (Bi Tx) => TxPayload -> MerkleTree Tx
+mkTxPayloadMerkleTree :: (BiEnc Tx) => TxPayload -> MerkleTree Tx
 mkTxPayloadMerkleTree UnsafeTxPayload {..} = mkMerkleTree _txpTxs
 
 ----------------------------------------------------------------------------

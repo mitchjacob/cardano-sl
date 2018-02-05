@@ -4,15 +4,15 @@ module Pos.Binary.Merkle () where
 
 import           Universum
 
-import           Pos.Binary.Class (Bi, BiDec (..), BiEnc (..), Raw)
+import           Pos.Binary.Class (BiDec (..), BiEnc (..), Raw)
 import           Pos.Crypto.Hashing (Hash)
 import           Pos.Merkle (MerkleRoot (..), MerkleTree (..), mkMerkleTree)
 
 -- This instance is both faster and more space-efficient (as confirmed by a
 -- benchmark). Hashing turns out to be faster than decoding extra data.
-instance (Bi a, BiEnc (Hash Raw)) => BiEnc (MerkleTree a) where
+instance (BiEnc a, BiEnc (Hash Raw)) => BiEnc (MerkleTree a) where
     encode = encode . toList
-instance (Bi a, BiDec (Hash Raw)) => BiDec (MerkleTree a) where
+instance (BiEnc a, BiDec a, BiDec (Hash Raw)) => BiDec (MerkleTree a) where
     decode = mkMerkleTree <$> decode
 
 instance (BiEnc a, BiEnc (Hash Raw)) => BiEnc (MerkleRoot a) where

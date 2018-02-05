@@ -67,7 +67,7 @@ import           Formatting (Format, bprint, build, builder, int, later, (%))
 import           Serokell.Data.Memory.Units (Byte)
 import           Serokell.Util (mapJson)
 
-import           Pos.Binary.Class (Bi, biSize)
+import           Pos.Binary.Class (BiDec, BiEnc, biSize)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Binary.Crypto ()
 import           Pos.Core.Common.Coin ()
@@ -84,7 +84,7 @@ import           Pos.Crypto.Signing (EncryptedSecretKey, PassPhrase, PublicKey, 
                                      noPassEncrypt)
 import           Pos.Data.Attributes (attrData, mkAttributes)
 
-instance Bi Address => Hashable Address where
+instance BiEnc Address => Hashable Address where
     hashWithSalt s = hashWithSalt s . Bi.serialize
 
 ----------------------------------------------------------------------------
@@ -140,21 +140,21 @@ addressDetailedF =
 addrAlphabet :: Alphabet
 addrAlphabet = bitcoinAlphabet
 
-addrToBase58 :: Bi Address => Address -> ByteString
+addrToBase58 :: BiEnc Address => Address -> ByteString
 addrToBase58 = encodeBase58 addrAlphabet . Bi.serialize'
 
-instance Bi Address => Buildable Address where
+instance BiEnc Address => Buildable Address where
     build = Buildable.build . decodeUtf8 @Text . addrToBase58
 
 -- | Specialized formatter for 'Address'.
-addressF :: Bi Address => Format r (Address -> r)
+addressF :: BiEnc Address => Format r (Address -> r)
 addressF = build
 
 -- | A function which decodes base58-encoded 'Address'.
-decodeTextAddress :: Bi Address => Text -> Either Text Address
+decodeTextAddress :: BiDec Address => Text -> Either Text Address
 decodeTextAddress = decodeAddress . encodeUtf8
   where
-    decodeAddress :: Bi Address => ByteString -> Either Text Address
+    decodeAddress :: BiDec Address => ByteString -> Either Text Address
     decodeAddress bs = do
         let base58Err = "Invalid base58 representation of address"
         dbs <- maybeToRight base58Err $ decodeBase58 addrAlphabet bs
@@ -165,7 +165,7 @@ decodeTextAddress = decodeAddress . encodeUtf8
 ----------------------------------------------------------------------------
 
 -- | Make an 'Address' from spending data and attributes.
-makeAddress :: Bi Address' => AddrSpendingData -> AddrAttributes -> Address
+makeAddress :: BiEnc Address' => AddrSpendingData -> AddrAttributes -> Address
 makeAddress spendingData attributesUnwrapped =
     Address
     { addrRoot = addressHash address'
@@ -182,33 +182,8 @@ makeAddress spendingData attributesUnwrapped =
 -- bootstrap era.
 newtype IsBootstrapEraAddr = IsBootstrapEraAddr Bool
 
--- | A function for making an address from 'PublicKey'.
-makePubKeyAddress :: Bi Address' => IsBootstrapEraAddr -> PublicKey -> Address
-makePubKeyAddress = makePubKeyAddressImpl Nothing
-
--- | A function for making an address from 'PublicKey' for bootstrap era.
-makePubKeyAddressBoot :: Bi Address' => PublicKey -> Address
-makePubKeyAddressBoot = makePubKeyAddress (IsBootstrapEraAddr True)
-
--- | This function creates a root public key address. Stake
--- distribution doesn't matter for root addresses because by design
--- nobody should even use these addresses as outputs, so we can put
--- arbitrary distribution there. We use bootstrap era distribution
--- because its representation is more compact.
-makeRootPubKeyAddress :: Bi Address' => PublicKey -> Address
-makeRootPubKeyAddress = makePubKeyAddressBoot
-
--- | A function for making an HDW address.
-makePubKeyHdwAddress
-    :: Bi Address'
-    => IsBootstrapEraAddr
-    -> HDAddressPayload    -- ^ Derivation path
-    -> PublicKey
-    -> Address
-makePubKeyHdwAddress ibe path = makePubKeyAddressImpl (Just path) ibe
-
 makePubKeyAddressImpl
-    :: Bi Address'
+    :: BiEnc Address'
     => Maybe HDAddressPayload
     -> IsBootstrapEraAddr
     -> PublicKey
@@ -223,11 +198,36 @@ makePubKeyAddressImpl path (IsBootstrapEraAddr isBootstrapEra) key =
     attrs =
         AddrAttributes {aaStakeDistribution = distr, aaPkDerivationPath = path}
 
+-- | A function for making an address from 'PublicKey'.
+makePubKeyAddress :: BiEnc Address' => IsBootstrapEraAddr -> PublicKey -> Address
+makePubKeyAddress = makePubKeyAddressImpl Nothing
+
+-- | A function for making an address from 'PublicKey' for bootstrap era.
+makePubKeyAddressBoot :: BiEnc Address' => PublicKey -> Address
+makePubKeyAddressBoot = makePubKeyAddress (IsBootstrapEraAddr True)
+
+-- | This function creates a root public key address. Stake
+-- distribution doesn't matter for root addresses because by design
+-- nobody should even use these addresses as outputs, so we can put
+-- arbitrary distribution there. We use bootstrap era distribution
+-- because its representation is more compact.
+makeRootPubKeyAddress :: BiEnc Address' => PublicKey -> Address
+makeRootPubKeyAddress = makePubKeyAddressBoot
+
+-- | A function for making an HDW address.
+makePubKeyHdwAddress
+    :: BiEnc Address'
+    => IsBootstrapEraAddr
+    -> HDAddressPayload    -- ^ Derivation path
+    -> PublicKey
+    -> Address
+makePubKeyHdwAddress ibe path = makePubKeyAddressImpl (Just path) ibe
+
 -- | A function for making an address from a validation 'Script'.  It
 -- takes an optional 'StakeholderId'. If it's given, it will receive
 -- the stake sent to the resulting 'Address'. Otherwise it's assumed
 -- that an 'Address' is created for bootstrap era.
-makeScriptAddress :: Bi Address' => Maybe StakeholderId -> Script -> Address
+makeScriptAddress :: BiEnc Address' => Maybe StakeholderId -> Script -> Address
 makeScriptAddress stakeholder scr = makeAddress spendingData attrs
   where
     spendingData = ScriptASD scr
@@ -235,7 +235,7 @@ makeScriptAddress stakeholder scr = makeAddress spendingData attrs
     attrs = AddrAttributes {aaPkDerivationPath = Nothing, ..}
 
 -- | A function for making an address from 'RedeemPublicKey'.
-makeRedeemAddress :: Bi Address' => RedeemPublicKey -> Address
+makeRedeemAddress :: BiEnc Address' => RedeemPublicKey -> Address
 makeRedeemAddress key = makeAddress spendingData attrs
   where
     spendingData = RedeemASD key
@@ -245,7 +245,7 @@ makeRedeemAddress key = makeAddress spendingData attrs
 
 -- | Create address from secret key in hardened way.
 createHDAddressH
-    :: Bi Address'
+    :: BiEnc Address'
     => IsBootstrapEraAddr
     -> ShouldCheckPassphrase
     -> PassPhrase
@@ -262,7 +262,7 @@ createHDAddressH ibea scp passphrase hdPassphrase parent parentPath childIndex =
 
 -- | Create address from public key via non-hardened way.
 createHDAddressNH
-    :: Bi Address'
+    :: BiEnc Address'
     => IsBootstrapEraAddr
     -> HDPassphrase
     -> PublicKey
@@ -280,37 +280,37 @@ createHDAddressNH ibea passphrase parent parentPath childIndex = do
 
 -- | Check whether given 'AddrSpendingData' corresponds to given
 -- 'Address'.
-checkAddrSpendingData :: (Bi Address, Bi Address') => AddrSpendingData -> Address -> Bool
+checkAddrSpendingData :: (BiEnc Address') => AddrSpendingData -> Address -> Bool
 checkAddrSpendingData asd Address {..} =
     addrRoot == addressHash address' && addrType == addrSpendingDataToType asd
   where
     address' = Address' (addrType, asd, addrAttributes)
 
 -- | Check if given 'Address' is created from given 'PublicKey'
-checkPubKeyAddress :: (Bi Address, Bi Address') => PublicKey -> Address -> Bool
+checkPubKeyAddress :: (BiEnc Address') => PublicKey -> Address -> Bool
 checkPubKeyAddress pk = checkAddrSpendingData (PubKeyASD pk)
 
 -- | Check if given 'Address' is created from given validation script
-checkScriptAddress :: (Bi Address, Bi Address') => Script -> Address -> Bool
+checkScriptAddress :: (BiEnc Address') => Script -> Address -> Bool
 checkScriptAddress script = checkAddrSpendingData (ScriptASD script)
 
 -- | Check if given 'Address' is created from given 'RedeemPublicKey'
-checkRedeemAddress :: (Bi Address, Bi Address') => RedeemPublicKey -> Address -> Bool
+checkRedeemAddress :: (BiEnc Address') => RedeemPublicKey -> Address -> Bool
 checkRedeemAddress rpk = checkAddrSpendingData (RedeemASD rpk)
 
 ----------------------------------------------------------------------------
 -- Hashing
 ----------------------------------------------------------------------------
 
-unsafeAddressHash :: Bi a => a -> AddressHash b
+unsafeAddressHash :: BiEnc a => a -> AddressHash b
 unsafeAddressHash = AbstractHash . secondHash . firstHash
   where
-    firstHash :: Bi a => a -> Digest SHA3_256
+    firstHash :: BiEnc a => a -> Digest SHA3_256
     firstHash = CryptoHash.hashlazy . Bi.serialize
     secondHash :: Digest SHA3_256 -> Digest Blake2b_224
     secondHash = CryptoHash.hash
 
-addressHash :: Bi a => a -> AddressHash a
+addressHash :: BiEnc a => a -> AddressHash a
 addressHash = unsafeAddressHash
 
 ----------------------------------------------------------------------------
@@ -332,7 +332,7 @@ addrAttributesUnwrapped = attrData . addrAttributes
 
 -- | Makes account secret key for given wallet set.
 deriveLvl2KeyPair
-    :: Bi Address'
+    :: BiEnc Address'
     => IsBootstrapEraAddr
     -> ShouldCheckPassphrase
     -> PassPhrase
@@ -347,7 +347,7 @@ deriveLvl2KeyPair ibea scp passphrase wsKey accountIndex addressIndex = do
     createHDAddressH ibea (ShouldCheckPassphrase False) passphrase hdPass wKey [accountIndex] addressIndex
 
 deriveFirstHDAddress
-    :: Bi Address'
+    :: BiEnc Address'
     => IsBootstrapEraAddr
     -> PassPhrase
     -> EncryptedSecretKey -- ^ key of wallet set
@@ -386,30 +386,30 @@ isBootstrapEraDistrAddress (addrAttributesUnwrapped -> AddrAttributes {..}) =
 -- | Largest (considering size of serialized data) PubKey address with
 -- BootstrapEra distribution. Actual size depends on CRC32 value which
 -- is serialized using var-length encoding.
-largestPubKeyAddressBoot :: Bi Address' => Address
+largestPubKeyAddressBoot :: BiEnc Address' => Address
 largestPubKeyAddressBoot = makePubKeyAddressBoot goodPk
 
 -- | Maximal size of PubKey address with BootstrapEra
 -- distribution (43).
-maxPubKeyAddressSizeBoot :: (Bi Address, Bi Address') => Byte
+maxPubKeyAddressSizeBoot :: (BiEnc Address, BiEnc Address') => Byte
 maxPubKeyAddressSizeBoot = biSize largestPubKeyAddressBoot
 
 -- | Largest (considering size of serialized data) PubKey address with
 -- SingleKey distribution. Actual size depends on CRC32 value which
 -- is serialized using var-length encoding.
-largestPubKeyAddressSingleKey :: Bi Address' => Address
+largestPubKeyAddressSingleKey :: BiEnc Address' => Address
 largestPubKeyAddressSingleKey =
     makePubKeyAddress (IsBootstrapEraAddr False) goodPk
 
 -- | Maximal size of PubKey address with SingleKey
 -- distribution (78).
-maxPubKeyAddressSizeSingleKey :: (Bi Address, Bi Address') => Byte
+maxPubKeyAddressSizeSingleKey :: (BiEnc Address, BiEnc Address') => Byte
 maxPubKeyAddressSizeSingleKey = biSize largestPubKeyAddressSingleKey
 
 -- | Largest (considering size of serialized data) HD address with
 -- BootstrapEra distribution. Actual size depends on CRC32 value which
 -- is serialized using var-length encoding.
-largestHDAddressBoot :: Bi Address' => Address
+largestHDAddressBoot :: BiEnc Address' => Address
 largestHDAddressBoot =
     case deriveLvl2KeyPair
              (IsBootstrapEraAddr True)
@@ -425,7 +425,7 @@ largestHDAddressBoot =
 
 -- | Maximal size of HD address with BootstrapEra
 -- distribution (76).
-maxHDAddressSizeBoot :: (Bi Address, Bi Address') => Byte
+maxHDAddressSizeBoot :: (BiEnc Address, BiEnc Address') => Byte
 maxHDAddressSizeBoot = biSize largestHDAddressBoot
 
 -- Public key and secret key for which we know that they produce

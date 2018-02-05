@@ -50,7 +50,7 @@ import           Fmt (genericF)
 import           Formatting (Format, bprint, build, int, (%))
 import           Serokell.Util (listJson)
 
-import           Pos.Binary.Class (AsBinary (..), Bi, serialize')
+import           Pos.Binary.Class (AsBinary (..), BiEnc, serialize')
 import           Pos.Core.Common (StakeholderId, addressHash)
 import           Pos.Core.Slotting.Types (EpochIndex)
 import           Pos.Crypto (DecShare, EncShare, Hash, PublicKey, Secret, SecretProof, Signature,
@@ -196,7 +196,7 @@ instance Ord VssCertificate where
         toTuple UnsafeVssCertificate {..} =
             (vcExpiryEpoch, vcVssKey, vcSigningKey, vcSignature)
 
-instance Bi PublicKey => Buildable VssCertificate where
+instance BiEnc PublicKey => Buildable VssCertificate where
     build UnsafeVssCertificate {..} = bprint
         ("vssCert:"%build%":"%int) vcSigningKey vcExpiryEpoch
 
@@ -254,7 +254,7 @@ data SscPayload
 -- serialized as a 'HashMap' (and 'VssCertificatesMap' was just a type
 -- alias for that 'HashMap').
 --
--- Alternative approach would be to keep 'instance Bi VssCertificatesMap'
+-- Alternative approach would be to keep binary instance of 'VssCertificatesMap'
 -- the same as it was in mainnet.
 type VssCertificatesHash = Hash (HashMap StakeholderId VssCertificate)
 
