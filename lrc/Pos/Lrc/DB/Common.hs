@@ -1,4 +1,3 @@
-
 -- | Common functions used by different parts of LRC DB.
 
 module Pos.Lrc.DB.Common
@@ -26,7 +25,7 @@ import           Universum
 
 import qualified Database.RocksDB as Rocks
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiDec, BiEnc)
 import           Pos.Binary.Core ()
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.Core.Slotting (EpochIndex)
@@ -44,12 +43,12 @@ dbHasKey :: MonadDBRead m => ByteString -> m Bool
 dbHasKey key = isJust <$> dbGet LrcDB key
 
 getBi
-    :: (MonadDBRead m, Bi v)
+    :: (MonadDBRead m, BiDec v)
     => ByteString -> m (Maybe v)
 getBi = dbGetBi LrcDB
 
 putBi
-    :: (MonadDB m, Bi v)
+    :: (MonadDB m, BiEnc v)
     => ByteString -> v -> m ()
 putBi = dbPutBi LrcDB
 
@@ -57,14 +56,14 @@ putBatch :: MonadDB m => [Rocks.BatchOp] -> m ()
 putBatch = dbWriteBatch LrcDB
 
 putBatchBi
-     :: (MonadDB m, Bi v)
+     :: (MonadDB m, BiEnc v)
      => [(ByteString, v)] -> m ()
 putBatchBi = putBatch . toRocksOps
 
 delete :: (MonadDB m) => ByteString -> m ()
 delete = dbDelete LrcDB
 
-toRocksOps :: (HasConfiguration, Bi v) => [(ByteString, v)] -> [Rocks.BatchOp]
+toRocksOps :: (HasConfiguration, BiEnc v) => [(ByteString, v)] -> [Rocks.BatchOp]
 toRocksOps ops =
     [Rocks.Put key (dbSerializeValue value) | (key, value) <- ops]
 

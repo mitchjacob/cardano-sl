@@ -22,7 +22,7 @@ import           Control.Monad.Trans.Resource (MonadResource)
 import           Data.Conduit (Source)
 
 import qualified Database.RocksDB as Rocks
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiDec)
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.DB.Class (DBIteratorClass (..), DBTag, IterType)
 import           Pos.DB.Pure (DBPureVar)
@@ -59,8 +59,8 @@ dbIterSourceSumDefault
     :: ( MonadDBSum ctx m
        , MonadResource m
        , DBIteratorClass i
-       , Bi (IterKey i)
-       , Bi (IterValue i)
+       , BiDec (IterKey i)
+       , BiDec (IterValue i)
        )
     => DBTag -> Proxy i -> Source m (IterType i)
 dbIterSourceSumDefault tag proxy = view (lensOf @DBSum) >>= \case

@@ -45,7 +45,7 @@ import           Formatting (build, sformat, (%))
 import           Serokell.Data.Memory.Units (Byte)
 import           Serokell.Util (VerificationRes, verifyGeneric)
 
-import           Pos.Binary.Class (Bi, asBinary, biSize, fromBinary)
+import           Pos.Binary.Class (BiEnc, asBinary, biSize, fromBinary)
 import           Pos.Binary.Core ()
 import           Pos.Binary.Crypto ()
 import           Pos.Core (EpochIndex (..), LocalSlotIndex, SharedSeed (..), SlotCount, SlotId (..),
@@ -94,7 +94,7 @@ genCommitmentAndOpening t pks
 
 -- | Make signed commitment from commitment and epoch index using secret key.
 mkSignedCommitment
-    :: (HasConfiguration, Bi Commitment)
+    :: (HasConfiguration, BiEnc Commitment)
     => SecretKey -> EpochIndex -> Commitment -> SignedCommitment
 mkSignedCommitment sk i c = (toPublic sk, c, sign SignCommitment sk (i, c))
 
@@ -169,8 +169,7 @@ intersectCommMapWith f (getCommitmentsMap -> a) (f -> b) =
 --   participants. This is done in 'checkCommitmentShares'.
 --
 -- * We also don't verify the shares, because that requires 'MonadRandom' and
---   we want to keep this check pure because it's performed in the 'Bi'
---   instance for blocks.
+--   we want to keep this check pure.
 verifyCommitment :: Commitment -> Bool
 verifyCommitment Commitment {..} = fromMaybe False $ do
     -- The shares can be deserialized
@@ -183,7 +182,11 @@ verifyCommitment Commitment {..} = fromMaybe False $ do
 -- | Verify signature in SignedCommitment using epoch index.
 --
 -- #checkSig
-verifyCommitmentSignature :: (HasConfiguration, Bi Commitment) => EpochIndex -> SignedCommitment -> Bool
+verifyCommitmentSignature ::
+       (HasConfiguration, BiEnc Commitment)
+    => EpochIndex
+    -> SignedCommitment
+    -> Bool
 verifyCommitmentSignature epoch (pk, comm, commSig) =
     checkSig SignCommitment pk (epoch, comm) commSig
 
@@ -193,7 +196,7 @@ verifyCommitmentSignature epoch (pk, comm, commSig) =
 -- #verifyCommitmentSignature
 -- #verifyCommitment
 verifySignedCommitment
-    :: (HasConfiguration, Bi Commitment)
+    :: (HasConfiguration, BiEnc Commitment)
     => EpochIndex
     -> SignedCommitment
     -> VerificationRes

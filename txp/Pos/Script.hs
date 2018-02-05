@@ -37,7 +37,7 @@ import qualified PlutusCore.Program as PL
 import           System.IO.Unsafe (unsafePerformIO)
 import qualified Utils.Names as PL
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiDec, BiEnc)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Binary.Core ()
 import           Pos.Binary.Crypto ()
@@ -68,7 +68,7 @@ stripStdlib (PL.Program xs) = PL.Program (filter (not . std) xs)
 
 -- | Parse a script intended to serve as a validator (or “lock”) in a
 -- transaction output.
-parseValidator :: Bi Script_v0 => Text -> Either String Script
+parseValidator :: BiEnc Script_v0 => Text -> Either String Script
 parseValidator t = do
     scr <- stripStdlib <$> PL.loadValidator stdlib (toString t)
     return Script {
@@ -77,7 +77,7 @@ parseValidator t = do
 
 -- | Parse a script intended to serve as a redeemer (or “proof”) in a
 -- transaction input.
-parseRedeemer :: Bi Script_v0 => Text -> Either String Script
+parseRedeemer :: BiEnc Script_v0 => Text -> Either String Script
 parseRedeemer t = do
     scr <- stripStdlib <$> PL.loadRedeemer stdlib (toString t)
     return Script {
@@ -115,7 +115,7 @@ instance Buildable PlutusError where
 
 -- | Validate a transaction, given a validator and a redeemer.
 txScriptCheck
-    :: (MonadError PlutusError m, Bi Script_v0)
+    :: (MonadError PlutusError m, BiDec Script_v0)
     => TxSigData
     -> Script                     -- ^ Validator
     -> Script                     -- ^ Redeemer

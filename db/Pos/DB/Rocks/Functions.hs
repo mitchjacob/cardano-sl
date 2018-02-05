@@ -40,7 +40,7 @@ import           System.Directory (createDirectoryIfMissing, doesDirectoryExist,
                                    removeDirectoryRecursive)
 import           System.FilePath ((</>))
 
-import           Pos.Binary.Class (Bi, BiDec, BiEnc)
+import           Pos.Binary.Class (BiDec, BiEnc)
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.DB.BatchOp (rocksWriteBatch)
 import           Pos.DB.Class (DBIteratorClass (..), DBTag (..), IterType)

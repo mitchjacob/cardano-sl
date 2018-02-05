@@ -48,7 +48,7 @@ import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Database.RocksDB as Rocks
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiDec)
 import           Pos.Core (HasConfiguration, HeaderHash)
 import           Pos.DB.Class (DBIteratorClass (..), DBTag (..), IterType, iterKeyPrefix)
 import           Pos.DB.Functions (processIterEntry)
@@ -120,8 +120,8 @@ dbIterSourcePureDefault ::
        ( MonadPureDB ctx m
        , DBIteratorClass i
        , MonadResource m
-       , Bi (IterKey i)
-       , Bi (IterValue i))
+       , BiDec (IterKey i)
+       , BiDec (IterValue i))
     => DBTag
     -> Proxy i
     -> Source m (IterType i)
