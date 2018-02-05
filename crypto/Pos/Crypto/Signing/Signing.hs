@@ -37,7 +37,7 @@ import           Data.Coerce (coerce)
 import           Formatting (Format, build, later, sformat, (%))
 import qualified Serokell.Util.Base16 as B16
 
-import           Pos.Binary.Class (Bi, Raw)
+import           Pos.Binary.Class (BiEnc, Raw)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Binary.Crypto ()
 import           Pos.Crypto.Configuration (HasCryptoConfiguration)
@@ -91,7 +91,7 @@ parseFullSignature s = do
 
 -- | Encode something with 'Binary' and sign it.
 sign
-    :: (HasCryptoConfiguration, Bi a)
+    :: (HasCryptoConfiguration, BiEnc a)
     => SignTag         -- ^ See docs for 'SignTag'
     -> SecretKey
     -> a
@@ -112,7 +112,7 @@ signRaw mbTag (SecretKey k) x = Signature (CC.sign emptyPass k (tag <> x))
     tag = maybe mempty signTag mbTag
 
 -- | Smart constructor for 'Signed' data type with proper signing.
-mkSigned :: (HasCryptoConfiguration, Bi a) => SignTag -> SecretKey -> a -> Signed a
+mkSigned :: (HasCryptoConfiguration, BiEnc a) => SignTag -> SecretKey -> a -> Signed a
 mkSigned t sk x = Signed x (sign t sk x)
 
 ----------------------------------------------------------------------------
@@ -135,7 +135,7 @@ parseFullProxyCert s = do
 -- certificate inside, we panic. Please check this condition outside
 -- of this function.
 proxySign
-    :: (HasCryptoConfiguration, Bi a)
+    :: (HasCryptoConfiguration, BiEnc a)
     => SignTag -> SecretKey -> ProxySecretKey w -> a -> ProxySignature w a
 proxySign t sk@(SecretKey delegateSk) psk m
     | toPublic sk /= pskDelegatePk psk =
@@ -160,7 +160,7 @@ proxySign t sk@(SecretKey delegateSk) psk m
 -- | Verify delegated signature given issuer's pk, signature, message
 -- space predicate and message itself.
 proxyVerify
-    :: (HasCryptoConfiguration, Bi w, Bi a)
+    :: (HasCryptoConfiguration, BiEnc w, BiEnc a)
     => SignTag -> ProxySignature w a -> (w -> Bool) -> a -> Bool
 proxyVerify t psig omegaPred m =
     and [predCorrect, sigValid]

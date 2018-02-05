@@ -19,7 +19,7 @@ import qualified Data.ByteArray as ByteArray
 import qualified Data.ByteString as BS
 import           Formatting (int, sformat, (%))
 
-import           Pos.Binary.Class (AsBinary (..), Bi, BiDec (..), BiEnc (..), Cons (..), Field (..),
+import           Pos.Binary.Class (AsBinary (..), BiDec (..), BiEnc (..), Cons (..), Field (..),
                                    decodeBinary, deriveSimpleBi, encodeBinary, encodeListLen,
                                    enforceSize)
 import           Pos.Crypto.AsBinary (decShareBytes, encShareBytes, secretBytes, vssPublicKeyBytes)
@@ -37,9 +37,9 @@ import           Pos.Crypto.Signing.Types.Safe (EncryptedSecretKey (..), PassPhr
 import           Pos.Util.Util (cborError, toCborError)
 import           Pos.Util.Verification (Unver, mkUnver)
 
-instance Bi a => BiEnc (WithHash a) where
+instance BiEnc a => BiEnc (WithHash a) where
     encode = encode . whData
-instance Bi a => BiDec (WithHash a) where
+instance (BiEnc a, BiDec a) => BiDec (WithHash a) where
     decode = withHash <$> decode
 
 ----------------------------------------------------------------------------

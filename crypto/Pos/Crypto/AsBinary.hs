@@ -16,7 +16,8 @@ import           Data.Text.Buildable (Buildable)
 import qualified Data.Text.Buildable as Buildable
 import           Formatting (bprint, int, sformat, stext, (%))
 
-import           Pos.Binary.Class (AsBinary (..), AsBinaryClass (..), Bi, decodeFull', serialize')
+import           Pos.Binary.Class (AsBinary (..), AsBinaryClass (..), BiDec, BiEnc, decodeFull',
+                                   serialize')
 import           Pos.Crypto.Hashing (hash, shortHashF)
 import           Pos.Crypto.SecretSharing (DecShare (..), EncShare (..), Secret (..),
                                            VssPublicKey (..))
@@ -46,7 +47,7 @@ checkLenImpl action name expectedLen len
             expectedLen
 
 #define Ser(B, Bytes, Name) \
-  instance (Bi B, Bi (AsBinary B)) => AsBinaryClass B where {\
+  instance (BiEnc B, BiDec B) => AsBinaryClass B where {\
     asBinary = AsBinary . checkLen "asBinary" Name Bytes . serialize' ;\
     fromBinary = decodeFull' . checkLen "fromBinary" Name Bytes . getAsBinary }; \
 
@@ -71,5 +72,5 @@ instance Buildable (AsBinary DecShare) where
 instance Buildable (AsBinary EncShare) where
     build _ = "encrypted share \\_(0.0)_/"
 
-instance Bi (AsBinary VssPublicKey) => Buildable (AsBinary VssPublicKey) where
+instance BiEnc (AsBinary VssPublicKey) => Buildable (AsBinary VssPublicKey) where
     build = bprint ("vsspub:"%shortHashF) . hash

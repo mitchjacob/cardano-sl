@@ -14,7 +14,7 @@ import           Universum
 import qualified Data.Text.Buildable
 import           Fmt (genericF)
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import           Pos.Binary.Core.Delegation ()
 import           Pos.Binary.Core.Ssc ()
 import           Pos.Binary.Core.Txp ()
@@ -34,8 +34,8 @@ import           Pos.Core.Update (UpdatePayload, UpdateProof, mkUpdateProof)
 import           Pos.Crypto (PublicKey)
 
 instance ( HasConfiguration
-         , Bi BlockHeader
-         , Bi (BodyProof MainBlockchain)
+         , BiEnc BlockHeader
+         , BiEnc (BodyProof MainBlockchain)
          , IsMainHeader (GenericBlockHeader MainBlockchain)) =>
          Blockchain MainBlockchain where
 
@@ -43,7 +43,7 @@ instance ( HasConfiguration
     data BodyProof MainBlockchain = MainProof
         { mpTxProof       :: !TxProof
         , mpMpcProof      :: !SscProof
-        , mpProxySKsProof :: !DlgProof
+        , mpDlgProof      :: !DlgProof
         , mpUpdateProof   :: !UpdateProof
         } deriving (Eq, Show, Generic)
 
@@ -82,7 +82,7 @@ instance ( HasConfiguration
         MainProof
         { mpTxProof = mkTxProof _mbTxPayload
         , mpMpcProof = mkSscProof _mbSscPayload
-        , mpProxySKsProof = mkDlgProof _mbDlgPayload
+        , mpDlgProof = mkDlgProof _mbDlgPayload
         , mpUpdateProof = mkUpdateProof _mbUpdatePayload
         }
 

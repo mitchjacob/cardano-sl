@@ -29,7 +29,7 @@ deriveSimpleBi ''User [
 
 will generate:
 
-instance Bi User where
+instance BiEnc User where
     encode = \x -> case x of
         val@Login{} -> encodeListLen 3 <> encode (0 :: Word8)
                                        <> encode (login val)
@@ -37,7 +37,7 @@ instance Bi User where
         val@FullName{} -> encodeListLen 3 <> encode (1 :: Word8)
                                           <> encode (firstName val)
                                           <> encode (sex val)
-instance Bi User where
+instance BiDec User where
     decode = do
         expectedLen <- decodeListLenCanonical
         tag <- decode @Word8

@@ -44,7 +44,7 @@ import           System.IO (IOMode (WriteMode), hClose, hFlush, openBinaryFile)
 import           System.IO.Error (IOError, isDoesNotExistError)
 
 import           Pos.Binary.Block.Types ()
-import           Pos.Binary.Class (Bi, decodeFull', serialize')
+import           Pos.Binary.Class (BiEnc, decodeFull', serialize')
 import           Pos.Binary.Core ()
 import           Pos.Block.BHelpers ()
 import           Pos.Block.Types (Blund, SerializedBlund, SlogUndo (..), Undo (..))
@@ -65,6 +65,7 @@ import           Pos.DB.Rocks (MonadRealDB, blockDataDir, getBlockIndexDB, getNo
 import           Pos.DB.Sum (MonadDBSum, eitherDB)
 import           Pos.Delegation.Types (DlgUndo (..))
 import           Pos.Util.Util (HasLens (..), eitherToThrow)
+import           Pos.Util.Verification (getUnverUnsafe)
 
 ----------------------------------------------------------------------------
 -- BlockDB related methods
@@ -147,7 +148,10 @@ decodeOrFailPureDB
     :: HasConfiguration
     => ByteString
     -> Either Text (Block, Undo)
-decodeOrFailPureDB = decodeFull'
+decodeOrFailPureDB =
+    -- getUnverUnsafe here is justified, because pureDB can't contain
+    -- broken data.
+    fmap (first getUnverUnsafe) <$> decodeFull'
 
 dbGetBlundPureDefault ::
        (HasConfiguration, MonadPureDB ctx m)
@@ -245,7 +249,7 @@ dbPutSerBlundSumDefault b = eitherDB (dbPutSerBlundRealDefault b) (dbPutSerBlund
 ----------------------------------------------------------------------------
 
 putBi
-    :: (MonadRealDB ctx m, Bi v)
+    :: (MonadRealDB ctx m, BiEnc v)
     => ByteString -> v -> m ()
 putBi k v = rocksPutBi k v =<< getBlockIndexDB
 
@@ -260,7 +264,7 @@ getRawData  = handle handler . fmap Just . liftIO . BS.readFile
         | isDoesNotExistError e = pure Nothing
         | otherwise = throwM e
 
-putData ::  (MonadIO m, Bi v) => FilePath -> v -> m ()
+putData ::  (MonadIO m, BiEnc v) => FilePath -> v -> m ()
 putData fp = putRawData fp . serialize'
 
 putRawData ::  MonadIO m => FilePath -> ByteString -> m ()

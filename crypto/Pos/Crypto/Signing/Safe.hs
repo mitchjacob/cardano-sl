@@ -24,7 +24,7 @@ import           Crypto.Random (MonadRandom, getRandomBytes)
 import qualified Data.ByteString as BS
 import           Data.Coerce (coerce)
 
-import           Pos.Binary.Class (Bi, Raw)
+import           Pos.Binary.Class (BiEnc, Raw)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Crypto.Configuration (HasCryptoConfiguration)
 import           Pos.Crypto.Hashing (Hash, hash)
@@ -37,7 +37,7 @@ import           Pos.Crypto.Signing.Types.Safe
 -- | Regenerates secret key with new passphrase.
 -- Note: This operation keeps corresponding public key and derived (child) keys unchanged.
 changeEncPassphrase
-    :: (Bi PassPhrase, MonadRandom m)
+    :: (BiEnc PassPhrase, MonadRandom m)
     => PassPhrase
     -> PassPhrase
     -> EncryptedSecretKey
@@ -59,7 +59,7 @@ signRaw' mbTag (PassPhrase pp) (EncryptedSecretKey sk _) x =
     tag = maybe mempty signTag mbTag
 
 sign'
-    :: (HasCryptoConfiguration, Bi a)
+    :: (HasCryptoConfiguration, BiEnc a)
     => SignTag -> PassPhrase -> EncryptedSecretKey -> a -> Signature a
 sign' t pp sk = coerce . signRaw' (Just t) pp sk . Bi.serialize'
 
@@ -75,14 +75,14 @@ safeCreateKeypairFromSeed seed (PassPhrase pp) =
 -- "Pos.Crypto.Random" because the OpenSSL generator is probably safer than
 -- the default IO generator.
 safeKeyGen
-    :: (MonadRandom m, Bi PassPhrase, Bi (Hash ByteString))
+    :: (MonadRandom m, BiEnc PassPhrase, BiEnc (Hash ByteString))
     => PassPhrase -> m (PublicKey, EncryptedSecretKey)
 safeKeyGen pp = do
     seed <- getRandomBytes 32
     pure $ safeDeterministicKeyGen seed pp
 
 safeDeterministicKeyGen
-    :: (Bi PassPhrase, Bi (Hash ByteString))
+    :: (BiEnc PassPhrase, BiEnc (Hash ByteString))
     => BS.ByteString
     -> PassPhrase
     -> (PublicKey, EncryptedSecretKey)
@@ -92,7 +92,7 @@ safeDeterministicKeyGen seed pp =
         (mkEncSecretWithSaltUnsafe (S.mkSalt (hash seed)) pp)
         (safeCreateKeypairFromSeed seed pp)
 
-safeSign :: (HasCryptoConfiguration, Bi a) => SignTag -> SafeSigner -> a -> Signature a
+safeSign :: (HasCryptoConfiguration, BiEnc a) => SignTag -> SafeSigner -> a -> Signature a
 safeSign t (SafeSigner sk pp) = sign' t pp sk
 safeSign t (FakeSigner sk)    = sign t sk
 
@@ -104,7 +104,7 @@ safeToPublic (FakeSigner sk)   = toPublic sk
 -- we can manually cleanup all IO buffers we use to store passphrase
 -- (when we'll actually use them)
 withSafeSigners
-    :: (Monad m, Bi PassPhrase, Traversable t)
+    :: (Monad m, BiEnc PassPhrase, Traversable t)
     => t EncryptedSecretKey
     -> m PassPhrase
     -> (t SafeSigner -> m a) -> m a
@@ -114,7 +114,7 @@ withSafeSigners sks ppGetter action = do
     action mss
 
 withSafeSigner
-    :: (Monad m, Bi PassPhrase)
+    :: (Monad m, BiEnc PassPhrase)
     => EncryptedSecretKey
     -> m PassPhrase
     -> (Maybe SafeSigner -> m a)
@@ -126,7 +126,7 @@ withSafeSigner sk ppGetter action = do
 
 -- This function is like @withSafeSigner@ but doesn't check @checkPassMatches@
 withSafeSignerUnsafe
-    :: (Monad m, Bi PassPhrase)
+    :: (Monad m, BiEnc PassPhrase)
     => EncryptedSecretKey
     -> m PassPhrase
     -> (SafeSigner -> m a)
@@ -142,7 +142,12 @@ fakeSigner = FakeSigner
 
 -- | Proxy certificate creation from secret key of issuer, public key
 -- of delegate and the message space ω.
-safeCreateProxyCert :: (HasCryptoConfiguration, Bi w) => SafeSigner -> PublicKey -> w -> ProxyCert w
+safeCreateProxyCert ::
+       (HasCryptoConfiguration, BiEnc w)
+    => SafeSigner
+    -> PublicKey
+    -> w
+    -> ProxyCert w
 safeCreateProxyCert ss (PublicKey delegatePk) o = coerce $ ProxyCert sig
   where
     Signature sig = safeSign SignProxySK ss $
@@ -151,7 +156,7 @@ safeCreateProxyCert ss (PublicKey delegatePk) o = coerce $ ProxyCert sig
 
 -- | Creates proxy secret key
 safeCreatePsk ::
-       (HasCryptoConfiguration, Bi w)
+       (HasCryptoConfiguration, BiEnc w)
     => SafeSigner
     -> PublicKey
     -> w
@@ -169,12 +174,17 @@ safeCreatePsk ss delegatePk w =
 
 -- | Proxy certificate creation from secret key of issuer, public key
 -- of delegate and the message space ω.
-createProxyCert :: (HasCryptoConfiguration, Bi w) => SecretKey -> PublicKey -> w -> ProxyCert w
+createProxyCert ::
+       (HasCryptoConfiguration, BiEnc w)
+    => SecretKey
+    -> PublicKey
+    -> w
+    -> ProxyCert w
 createProxyCert = safeCreateProxyCert . fakeSigner
 
 -- | Creates proxy secret key
 createPsk ::
-       (HasCryptoConfiguration, Bi w)
+       (HasCryptoConfiguration, BiEnc w)
     => SecretKey
     -> PublicKey
     -> w

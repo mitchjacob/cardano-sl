@@ -12,7 +12,6 @@ import           Test.QuickCheck (Arbitrary (..), Gen, listOf)
 import           Test.QuickCheck.Arbitrary.Generic (genericShrink)
 
 import           Pos.Arbitrary.Core ()
-import           Pos.Binary.Core ()
 import           Pos.Core (EpochIndex, HasConfiguration, HeavyDlgIndex (..))
 import           Pos.Crypto (ProxySecretKey (..), createPsk)
 import           Pos.Delegation.Types (DlgPayload (..))

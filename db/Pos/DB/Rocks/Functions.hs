@@ -40,7 +40,7 @@ import           System.Directory (createDirectoryIfMissing, doesDirectoryExist,
                                    removeDirectoryRecursive)
 import           System.FilePath ((</>))
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (Bi, BiDec, BiEnc)
 import           Pos.Core.Configuration (HasConfiguration)
 import           Pos.DB.BatchOp (rocksWriteBatch)
 import           Pos.DB.Class (DBIteratorClass (..), DBTag (..), IterType)
@@ -139,7 +139,7 @@ rocksDelete k DB {..} = Rocks.delete rocksDB rocksWriteOpts k
 -- garbage, should be abstracted and hidden
 
 -- | Write serializable value to RocksDb for given key.
-rocksPutBi :: (HasConfiguration, Bi v, MonadIO m) => ByteString -> v -> DB -> m ()
+rocksPutBi :: (HasConfiguration, BiEnc v, MonadIO m) => ByteString -> v -> DB -> m ()
 rocksPutBi k v = rocksPutBytes k (dbSerializeValue v)
 
 ----------------------------------------------------------------------------
@@ -173,8 +173,8 @@ rocksIterSource ::
        ( MonadResource m
        , MonadRealDB ctx m
        , DBIteratorClass i
-       , Bi (IterKey i)
-       , Bi (IterValue i)
+       , BiDec (IterKey i)
+       , BiDec (IterValue i)
        )
     => DBTag
     -> Proxy i
@@ -198,7 +198,8 @@ rocksIterSource tag _ = do
                 Rocks.iterNext it
                 produce it
     processRes ::
-           (Bi (IterKey i), Bi (IterValue i))
+           ( BiDec (IterKey i)
+           , BiDec (IterValue i))
         => Maybe (ByteString, ByteString)
         -> ConduitM () (IterType i) m (Maybe (IterType i))
     processRes Nothing   = pure Nothing
@@ -225,8 +226,8 @@ dbIterSourceDefault ::
        ( MonadRealDB ctx m
        , MonadResource m
        , DBIteratorClass i
-       , Bi (IterKey i)
-       , Bi (IterValue i)
+       , BiDec (IterKey i)
+       , BiDec (IterValue i)
        )
     => DBTag
     -> Proxy i

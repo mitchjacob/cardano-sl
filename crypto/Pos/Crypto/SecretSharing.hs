@@ -46,7 +46,7 @@ import           Data.Text.Buildable (Buildable)
 import qualified Data.Text.Buildable as Buildable
 import           Formatting (bprint, (%))
 
-import           Pos.Binary.Class (Bi, serialize')
+import           Pos.Binary.Class (BiEnc, serialize')
 import           Pos.Crypto.Hashing (hash, shortHashF)
 import           Pos.Crypto.Random (deterministic)
 
@@ -72,7 +72,7 @@ newtype VssKeyPair =
     VssKeyPair Scrape.KeyPair
     deriving (Show, Eq, Generic)
 
-instance (Bi VssKeyPair) => Buildable VssKeyPair where
+instance (BiEnc VssKeyPair) => Buildable VssKeyPair where
     build = bprint ("vsssec:"%shortHashF) . hash
 
 -- | Extract VssPublicKey from VssKeyPair.
@@ -119,7 +119,7 @@ data SecretProof = SecretProof
 
 instance NFData SecretProof
 
-instance Bi SecretProof =>
+instance BiEnc SecretProof =>
          Hashable SecretProof where
     hashWithSalt s = hashWithSalt s . serialize'
 

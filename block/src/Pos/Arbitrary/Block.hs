@@ -5,11 +5,11 @@ module Pos.Arbitrary.Block
        , BlockHeaderList (..)
        ) where
 
+import qualified Prelude
 import           Universum
 
 import qualified Data.Text.Buildable as Buildable
 import           Formatting (bprint, build, (%))
-import qualified Prelude
 import           System.Random (Random, mkStdGen, randomR)
 import           Test.QuickCheck (Arbitrary (..), Gen, choose, suchThat, vectorOf)
 import           Test.QuickCheck.Arbitrary.Generic (genericArbitrary, genericShrink)
@@ -18,7 +18,7 @@ import           Pos.Arbitrary.Delegation (genDlgPayload)
 import           Pos.Arbitrary.Ssc (SscPayloadDependsOnSlot (..))
 import           Pos.Arbitrary.Txp ()
 import           Pos.Arbitrary.Update ()
-import           Pos.Binary.Class (Bi, Raw, biSize)
+import           Pos.Binary.Class (BiEnc, Raw, biSize)
 import qualified Pos.Block.Base as T
 import qualified Pos.Block.Pure as T
 import           Pos.Core (HasConfiguration, epochSlots)
@@ -86,7 +86,7 @@ instance ( Arbitrary SscProof
 
 instance ( Arbitrary SscPayload
          , Arbitrary SscProof
-         , Bi Raw
+         , BiEnc Raw
          , HasConfiguration
          ) =>
          Arbitrary T.MainBlockHeader where
@@ -112,7 +112,7 @@ instance (HasConfiguration, Arbitrary SscProof) =>
     shrink T.MainProof {..} =
         [T.MainProof txp mpcp prxp updp
         | (txp, mpcp, prxp, updp) <-
-            shrink (mpTxProof, mpMpcProof, mpProxySKsProof, mpUpdateProof)
+            shrink (mpTxProof, mpMpcProof, mpDlgProof, mpUpdateProof)
         ]
 
 instance (HasConfiguration, Arbitrary SscProof) =>
@@ -251,9 +251,9 @@ recursiveHeaderGen genesis
                 Left sk -> (sk, Nothing)
                 Right (issuerSK, delegateSK) ->
                     let delegatePK = toPublic delegateSK
-                        toPsk :: Bi w => w -> ProxySecretKey w
+                        toPsk :: BiEnc w => w -> ProxySecretKey w
                         toPsk = createPsk issuerSK delegatePK
-                        proxy = (toPsk siEpoch, toPublic issuerSK)
+                        proxy = (toPsk (Core.HeavyDlgIndex siEpoch), toPublic issuerSK)
                     in (delegateSK, Just proxy)
         pure $ Right $
             T.mkMainHeader prevHeader slotId leader proxySK body extraHData

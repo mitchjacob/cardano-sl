@@ -204,7 +204,7 @@ instance BiDec Nano where
 instance BiEnc Void where
     encode = absurd
 instance BiDec Void where
-    decode = fail "instance Bi Void: you shouldn't try to deserialize Void"
+    decode = fail "instance BiDec Void: you shouldn't try to deserialize Void"
 
 ----------------------------------------------------------------------------
 -- Tagged

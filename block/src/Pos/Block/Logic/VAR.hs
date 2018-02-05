@@ -73,8 +73,7 @@ verifyBlocksPrefix blocks = runExceptT $ do
 
     -- Run verification of each component.
     -- 'slogVerifyBlocks' uses 'Pos.Block.Pure.verifyBlocks' which does
-    -- the internal consistency checks formerly done in the 'Bi' instance
-    -- 'decode'.
+    -- the internal datatype consistency checks.
     slogUndos <- withExceptT VerifyBlocksError $ slogVerifyBlocks blocks
     _ <- withExceptT (VerifyBlocksError . pretty) $
         ExceptT $ sscVerifyBlocks (map toSscBlock blocks)

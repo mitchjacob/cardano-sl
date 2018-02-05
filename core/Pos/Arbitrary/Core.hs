@@ -40,7 +40,7 @@ import qualified Pos.Core.Common.Types as Types
 import           Pos.Core.Configuration (HasGenesisBlockVersionData, HasProtocolConstants,
                                          epochSlots)
 import           Pos.Core.Constants (sharedSeedLength)
-import           Pos.Core.Delegation (HeavyDlgIndex (..))
+import           Pos.Core.Delegation (HeavyDlgIndex (..), LightDlgIndices (..))
 import qualified Pos.Core.Genesis as G
 import qualified Pos.Core.Slotting as Types
 import           Pos.Core.Slotting.Types (Timestamp (..))
@@ -558,6 +558,13 @@ instance Arbitrary Second where
 
 deriving instance Arbitrary Types.Timestamp
 deriving instance Arbitrary Types.TimeDiff
+
+instance Arbitrary LightDlgIndices where
+    arbitrary = do
+        l <- arbitrary
+        r <- arbitrary
+        pure $ LightDlgIndices $ if r >= l then (l,r) else (r,l)
+    shrink = genericShrink
 
 instance Arbitrary HeavyDlgIndex where
     arbitrary = HeavyDlgIndex <$> arbitrary

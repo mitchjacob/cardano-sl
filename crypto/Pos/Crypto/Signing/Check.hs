@@ -18,7 +18,7 @@ import           Universum
 import qualified Cardano.Crypto.Wallet as CC
 import           Data.Coerce (coerce)
 
-import           Pos.Binary.Class (Bi, Raw)
+import           Pos.Binary.Class (BiEnc, Raw)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Crypto.Configuration (HasCryptoConfiguration)
 import           Pos.Crypto.Signing.Tag (signTag)
@@ -30,7 +30,7 @@ import           Pos.Util.Verification (Verifiable (..), verMFail, verMField)
 -- | Verify a signature.
 -- #verifyRaw
 checkSig ::
-       (HasCryptoConfiguration, Bi a)
+       (HasCryptoConfiguration, BiEnc a)
     => SignTag
     -> PublicKey
     -> a
@@ -53,7 +53,7 @@ checkSigRaw mbTag (PublicKey k) x (Signature s) = CC.verify k (tag <> x) s
 
 -- | Checks if certificate is valid, given issuer pk, delegate pk and ω.
 verifyProxyCert ::
-       (HasCryptoConfiguration, Bi w)
+       (HasCryptoConfiguration, BiEnc w)
     => PublicKey
     -> PublicKey
     -> w
@@ -64,14 +64,14 @@ verifyProxyCert issuerPk (PublicKey delegatePk) o (ProxyCert sig) =
         (mconcat ["00", CC.unXPub delegatePk, Bi.serialize' o])
         (Signature sig)
 
-instance (Bi w, Buildable w, Bi PublicKey, HasCryptoConfiguration) =>
+instance (BiEnc w, Buildable w, BiEnc PublicKey, HasCryptoConfiguration) =>
          Verifiable (ProxySecretKey w) where
   verify psk@UnsafeProxySecretKey{..} = do
       unless (verifyProxyCert pskIssuerPk pskDelegatePk pskOmega pskCert) $
           verMFail $ "PSK " <> pretty psk <> " is invalid"
       pure $ coerce psk
 
-instance (Bi w, Buildable w, Bi PublicKey, HasCryptoConfiguration) =>
+instance (BiEnc w, Buildable w, BiEnc PublicKey, HasCryptoConfiguration) =>
          Verifiable (ProxySignature w a) where
   verify UnsafeProxySignature {..} = do
     psigPsk' <- verMField "psigPsk" $ verify psigPsk

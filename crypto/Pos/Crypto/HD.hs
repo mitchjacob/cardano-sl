@@ -30,7 +30,7 @@ import           Data.ByteArray as BA (convert)
 import           Data.ByteString.Char8 as B
 import           Universum
 
-import           Pos.Binary.Class (Bi, decodeFull', serialize')
+import           Pos.Binary.Class (BiEnc, decodeFull', serialize')
 import           Pos.Crypto.Scrypt (EncryptedPass)
 import           Pos.Crypto.Signing.Types (EncryptedSecretKey (..), PassPhrase, PublicKey (..),
                                            checkPassMatches)
@@ -94,7 +94,7 @@ newtype ShouldCheckPassphrase = ShouldCheckPassphrase Bool
 
 -- | Derive child's secret key from parent's secret key using user's passphrase.
 deriveHDSecretKey
-    :: (Bi PassPhrase, Bi EncryptedPass)
+    :: (BiEnc PassPhrase, BiEnc EncryptedPass)
     => ShouldCheckPassphrase
     -> PassPhrase
     -> EncryptedSecretKey
@@ -136,7 +136,7 @@ unpackHDAddressAttr (HDPassphrase passphrase) (HDAddressPayload payload) = do
     case unpackCF of
         Left _ -> Nothing
         Right p -> case decodeFull' p of
-            Left _ -> Nothing
+            Left _     -> Nothing
             Right path -> pure path
 
 -- | Take HDPassphrase as symmetric key and serialized derivation path

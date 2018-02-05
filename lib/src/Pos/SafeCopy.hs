@@ -47,7 +47,7 @@ import           Pos.Crypto.Signing.Signing (ProxyCert (..), ProxySecretKey (..)
 import           Pos.Data.Attributes (Attributes (..), UnparsedFields)
 import           Pos.Merkle (MerkleNode (..), MerkleRoot (..), MerkleTree (..))
 import qualified Pos.Util.Modifier as MM
-import           Pos.Util.Util (toCerealError, cerealError)
+import           Pos.Util.Util (cerealError, toCerealError)
 
 ----------------------------------------------------------------------------
 -- Bi
@@ -214,15 +214,15 @@ deriveSafeCopySimple 0 'base ''ChainDifficulty
 instance SafeCopy SscProof =>
          SafeCopy (BodyProof MainBlockchain) where
     getCopy = contain $ do
-        mpTxProof <- safeGet
-        mpMpcProof      <- safeGet
-        mpProxySKsProof <- safeGet
-        mpUpdateProof   <- safeGet
+        mpTxProof     <- safeGet
+        mpMpcProof    <- safeGet
+        mpDlgProof    <- safeGet
+        mpUpdateProof <- safeGet
         return $! MainProof{..}
     putCopy MainProof {..} = contain $ do
         safePut mpTxProof
         safePut mpMpcProof
-        safePut mpProxySKsProof
+        safePut mpDlgProof
         safePut mpUpdateProof
 
 instance SafeCopy (BodyProof GenesisBlockchain) where

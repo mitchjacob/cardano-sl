@@ -20,7 +20,7 @@ import           Universum
 
 import           Control.Monad.Except (MonadError (throwError))
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import           Pos.Binary.Core ()
 import           Pos.Core.Block (Block)
 import           Pos.Core.Block.Blockchain (Blockchain (..), GenericBlock (..),
@@ -32,7 +32,7 @@ import           Pos.Core.Block.Main (Body (..), ConsensusData (..), MainBlockHe
 import           Pos.Core.Block.Union (BlockHeader, BlockSignature (..))
 import           Pos.Core.Class (IsMainHeader (..), epochIndexL)
 import           Pos.Core.Configuration (HasConfiguration)
-import           Pos.Core.Delegation (checkDlgPayload)
+import           Pos.Core.Delegation (getLightDlgIndices)
 import           Pos.Core.Slotting (SlotId (..))
 import           Pos.Core.Ssc (checkSscPayload)
 import           Pos.Core.Txp (checkTxPayload)
@@ -46,7 +46,7 @@ import           Pos.Util.Some (Some (Some))
 -- | Verify a BlockHeader in isolation. There is nothing to be done for
 -- genesis headers.
 verifyBlockHeader
-    :: (HasConfiguration, MonadError Text m, Bi (BodyProof MainBlockchain))
+    :: (HasConfiguration, MonadError Text m, BiEnc (BodyProof MainBlockchain))
     => BlockHeader
     -> m ()
 verifyBlockHeader = either (const (pure ())) verifyMainBlockHeader
@@ -55,8 +55,8 @@ verifyBlockHeader = either (const (pure ())) verifyMainBlockHeader
 verifyBlock
     :: ( HasConfiguration
        , MonadError Text m
-       , Bi BlockHeader
-       , Bi (BodyProof MainBlockchain)
+       , BiEnc BlockHeader
+       , BiEnc (BodyProof MainBlockchain)
        , IsMainHeader MainBlockHeader
        )
     => Block
@@ -74,8 +74,8 @@ verifyGenesisBlock UnsafeGenericBlock {..} =
 verifyMainBlock
     :: ( HasConfiguration
        , MonadError Text m
-       , Bi BlockHeader
-       , Bi (BodyProof MainBlockchain)
+       , BiEnc BlockHeader
+       , BiEnc (BodyProof MainBlockchain)
        , IsMainHeader MainBlockHeader
        )
     => GenericBlock MainBlockchain
@@ -109,12 +109,11 @@ verifyMainBody
 verifyMainBody MainBody {..} = do
     checkTxPayload _mbTxPayload
     checkSscPayload _mbSscPayload
-    checkDlgPayload _mbDlgPayload
     checkUpdatePayload _mbUpdatePayload
 
 -- | Verify a main block header in isolation.
 verifyMainBlockHeader
-    :: (HasConfiguration, MonadError Text m, Bi (BodyProof MainBlockchain))
+    :: (HasConfiguration, MonadError Text m, BiEnc (BodyProof MainBlockchain))
     => GenericBlockHeader MainBlockchain
     -> m ()
 verifyMainBlockHeader UnsafeGenericBlockHeader {..} = do
@@ -137,7 +136,7 @@ verifyMainBlockHeader UnsafeGenericBlockHeader {..} = do
         proxyVerify
             SignMainBlockLight
             proxySig
-            (\(epochLow, epochHigh) ->
+            (\(getLightDlgIndices -> (epochLow, epochHigh)) ->
                  epochLow <= epochId && epochId <= epochHigh)
             signature
     verifyBlockSignature (BlockPSignatureHeavy proxySig) =

@@ -13,7 +13,7 @@ import           Data.Default (Default)
 import           Mockable (Delay, Fork, Mockables, SharedAtomic)
 import           System.Wlog (WithLogger)
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiDec, BiEnc)
 import           Pos.Block.Configuration (HasBlockConfiguration)
 import           Pos.Block.Network.Types (MsgBlock, MsgGetBlocks, MsgGetHeaders, MsgHeaders)
 import           Pos.Block.RetrievalQueue (BlockRetrievalQueue, BlockRetrievalQueueTag)
@@ -38,7 +38,7 @@ import           Pos.Util.Util (HasLens, HasLens')
 -- are unavailable at this point, hence we defer providing them
 -- to the calling site.
 type BlockInstancesConstraint m =
-    ( Each '[Bi]
+    ( Each '[BiEnc, BiDec]
         [ MsgGetHeaders
         , MsgHeaders
         , MsgGetBlocks

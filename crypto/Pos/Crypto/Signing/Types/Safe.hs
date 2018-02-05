@@ -23,7 +23,7 @@ import qualified Data.Text.Buildable as B
 import qualified Prelude
 import           Universum
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import qualified Pos.Crypto.Scrypt as S
 import           Pos.Crypto.Signing.Types.Signing (PublicKey (..), SecretKey (..), toPublic)
 
@@ -79,7 +79,7 @@ passScryptParam =
 -- Hash is evaluated using given salt.
 -- This function assumes that passphrase matches with secret key.
 mkEncSecretWithSaltUnsafe
-    :: Bi PassPhrase
+    :: BiEnc PassPhrase
     => S.Salt -> PassPhrase -> CC.XPrv -> EncryptedSecretKey
 mkEncSecretWithSaltUnsafe salt pp payload =
     EncryptedSecretKey payload $ S.encryptPassWithSalt passScryptParam salt pp
@@ -88,7 +88,7 @@ mkEncSecretWithSaltUnsafe salt pp payload =
 -- Hash is evaluated using generated salt.
 -- This function assumes that passphrase matches with secret key.
 mkEncSecretUnsafe
-    :: (Bi PassPhrase, MonadRandom m)
+    :: (BiEnc PassPhrase, MonadRandom m)
     => PassPhrase -> CC.XPrv -> m EncryptedSecretKey
 mkEncSecretUnsafe pp payload =
     EncryptedSecretKey payload <$> S.encryptPass passScryptParam pp
@@ -104,14 +104,14 @@ encToPublic = toPublic . encToSecret
 -- | Re-wrap unencrypted secret key as an encrypted one.
 -- NB: for testing purposes only
 noPassEncrypt
-    :: Bi PassPhrase
+    :: BiEnc PassPhrase
     => SecretKey -> EncryptedSecretKey
 noPassEncrypt (SecretKey k) =
     mkEncSecretWithSaltUnsafe S.emptySalt emptyPassphrase k
 
 -- Here with types to avoid module import cycles:
 checkPassMatches
-    :: (Bi PassPhrase, Alternative f)
+    :: (BiEnc PassPhrase, Alternative f)
     => PassPhrase -> EncryptedSecretKey -> f ()
 checkPassMatches pp (EncryptedSecretKey _ pph) =
     guard (S.verifyPass passScryptParam pp pph)

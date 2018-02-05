@@ -29,7 +29,7 @@ instance BiEnc (Core.BodyProof BC.MainBlockchain) where
     encode bc =  encodeListLen 4
               <> encode (BC.mpTxProof bc)
               <> encode (BC.mpMpcProof bc)
-              <> encode (BC.mpProxySKsProof bc)
+              <> encode (BC.mpDlgProof bc)
               <> encode (BC.mpUpdateProof bc)
 instance BiDec (Core.BodyProof BC.MainBlockchain) where
     decode = do

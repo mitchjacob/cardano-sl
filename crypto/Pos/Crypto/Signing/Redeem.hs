@@ -9,11 +9,11 @@ module Pos.Crypto.Signing.Redeem
 import           Universum
 
 import           Crypto.Random (MonadRandom, getRandomBytes)
+import qualified Crypto.Sign.Ed25519 as Ed25519
 import qualified Data.ByteString as BS
 import           Data.Coerce (coerce)
 
-import qualified Crypto.Sign.Ed25519 as Ed25519
-import           Pos.Binary.Class (Bi, Raw)
+import           Pos.Binary.Class (BiEnc, Raw)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Crypto.Configuration (HasCryptoConfiguration)
 import           Pos.Crypto.Signing.Tag (SignTag, signTag)
@@ -46,7 +46,7 @@ redeemDeterministicKeyGen seed =
 
 -- | Encode something with 'Binary' and sign it.
 redeemSign ::
-       (HasCryptoConfiguration, Bi a)
+       (HasCryptoConfiguration, BiEnc a)
     => SignTag
     -> RedeemSecretKey
     -> a
@@ -68,7 +68,7 @@ redeemSignRaw mbTag (RedeemSecretKey k) x =
 -- CHECK: @redeemCheckSig
 -- | Verify a signature.
 redeemCheckSig
-    :: (HasCryptoConfiguration, Bi a)
+    :: (HasCryptoConfiguration, BiEnc a)
     => SignTag -> RedeemPublicKey -> a -> RedeemSignature a -> Bool
 redeemCheckSig tag k x s =
     redeemVerifyRaw (Just tag) k (Bi.serialize' x) (coerce s)

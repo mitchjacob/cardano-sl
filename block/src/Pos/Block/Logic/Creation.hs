@@ -18,6 +18,7 @@ import           Universum
 import           Control.Lens (uses, (-=), (.=), _Wrapped)
 import           Control.Monad.Except (MonadError (throwError), runExceptT)
 import           Data.Default (Default (def))
+import qualified Data.Set as Set
 import           Formatting (build, fixed, ords, sformat, stext, (%))
 import           Serokell.Data.Memory.Units (Byte, memory)
 import           System.Wlog (WithLogger, logDebug)
@@ -40,8 +41,8 @@ import           Pos.Core.Update (UpdatePayload (..))
 import           Pos.Crypto (SecretKey)
 import qualified Pos.DB.BlockIndex as DB
 import           Pos.DB.Class (MonadDBRead)
-import           Pos.Delegation (DelegationVar, DlgPayload (..), ProxySKBlockInfo,
-                                 clearDlgMemPool, getDlgMempool, checkDlgPayload)
+import           Pos.Delegation (DelegationVar, DlgPayload (..), ProxySKBlockInfo, clearDlgMemPool,
+                                 getDlgMempool)
 import           Pos.Exception (assertionFailed, reportFatalError)
 import           Pos.Lrc (HasLrcContext, LrcModeFull, lrcSingleShot)
 import           Pos.Lrc.Context (lrcActionOnEpochReason)
@@ -437,7 +438,7 @@ createMainBody bodyLimit sId payload =
 
         -- include delegation certificates and US payload
         let prioritizeUS = even (flattenSlotId sId)
-        let psks = getDlgPayload dlgPay
+        let psks = toList $ getDlgPayload dlgPay
         (psks', usPayload') <-
             if prioritizeUS then do
                 usPayload' <- includeUSPayload
@@ -447,11 +448,7 @@ createMainBody bodyLimit sId payload =
                 psks' <- takeSome psks
                 usPayload' <- includeUSPayload
                 return (psks', usPayload')
-        let dlgPay' = UnsafeDlgPayload psks'
-        -- TBD: is it necessary to check here?
-        -- What if it fails? What will be the behaviour of cardano-sl at
-        -- large?
-        checkDlgPayload dlgPay'
+        let dlgPay' = DlgPayload $ Set.fromList psks'
         -- include transactions
         txs' <- takeSome txs
         -- return the resulting block

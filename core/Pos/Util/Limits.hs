@@ -14,7 +14,7 @@ import           Universum
 import qualified Data.HashMap.Strict as HM
 import           Serokell.Data.Memory.Units (Byte)
 
-import           Pos.Binary.Class (Bi, biSize)
+import           Pos.Binary.Class (BiEnc, biSize)
 
 -- | Spans hash map into two (almost same) parts.
 spanHashMap :: (Hashable k, Eq k) => HashMap k v -> (HashMap k v, HashMap k v)
@@ -28,7 +28,7 @@ spanHashMap m = (HM.fromList esl, HM.fromList esr)
 -- fail if limit is less than size of empty hashmap (1 byte).
 stripHashMap
     :: forall k v.
-       (Hashable k, Ord k, Bi k, Bi v)
+       (Hashable k, Ord k, BiEnc k, BiEnc v)
     => Byte -> HashMap k v -> Maybe (HashMap k v)
 stripHashMap lim m'
     | lim < biSize (HM.empty :: HashMap k v) = Nothing

@@ -8,7 +8,7 @@ import           Universum
 
 import qualified Codec.CBOR.Write as CBOR (toStrictByteString)
 
-import           Pos.Binary.Class (Bi (..), encodeListLen)
+import           Pos.Binary.Class (encode, encodeListLen)
 
 -- | Get an encoded MsgBlock from an encoded block.
 msgBlockPrefix :: ByteString

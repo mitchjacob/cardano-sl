@@ -36,7 +36,7 @@ import           Pos.Crypto (Hash, ProxySecretKey (..), ProxySignature, hash)
 
 -- | Pair of indices for light delegation PSK that define start and
 -- end epoch of cert usage. Block is valid if its epoch index is
--- inside this range.
+-- inside this range (bounds are included).
 data LightDlgIndices =
     LightDlgIndices { getLightDlgIndices :: (EpochIndex, EpochIndex) }
     deriving (Show, Eq, Ord, Generic)

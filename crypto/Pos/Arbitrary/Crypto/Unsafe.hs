@@ -7,7 +7,7 @@ import           Universum
 import           Test.QuickCheck (Arbitrary (..), choose)
 import           Test.QuickCheck.Instances ()
 
-import           Pos.Binary.Class (Bi)
+import           Pos.Binary.Class (BiEnc)
 import qualified Pos.Binary.Class as Bi
 import           Pos.Binary.Crypto ()
 import           Pos.Crypto.Configuration (HasCryptoConfiguration)
@@ -26,7 +26,7 @@ instance ArbitraryUnsafe SecretKey where
 
 -- Generating invalid `Signed` objects doesn't make sense even in
 -- benchmarks
-instance (HasCryptoConfiguration, Bi a, ArbitraryUnsafe a, Arbitrary SignTag) =>
+instance (HasCryptoConfiguration, BiEnc a, ArbitraryUnsafe a, Arbitrary SignTag) =>
          ArbitraryUnsafe (Signed a) where
     arbitraryUnsafe = mkSigned <$> arbitrary
                                <*> arbitraryUnsafe
@@ -43,7 +43,7 @@ instance ArbitraryUnsafe VssKeyPair where
 instance ArbitraryUnsafe VssPublicKey where
     arbitraryUnsafe = toVssPublicKey <$> arbitraryUnsafe
 
-instance (HashAlgorithm algo, Bi a) =>
+instance (HashAlgorithm algo, BiEnc a) =>
          ArbitraryUnsafe (AbstractHash algo a) where
     arbitraryUnsafe = unsafeAbstractHash <$>
         choose (minBound, maxBound :: Word64)
